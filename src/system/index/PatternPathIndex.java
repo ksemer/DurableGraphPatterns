@@ -133,7 +133,7 @@ public class PatternPathIndex {
 					continue;
 				
 				if (info.father == null) {		
-					toBeVisited.add(new n_info(trg, info, info.depth + 1));
+						toBeVisited.add(new n_info(trg, info, info.depth + 1));
 				} else if (!info.father.n.equals(trg)) {
 					toBeVisited.add(new n_info(trg, info, info.depth + 1));
 				}
@@ -182,4 +182,5 @@ public class PatternPathIndex {
 			this.depth = depth;
 		}
 	}
+
 }

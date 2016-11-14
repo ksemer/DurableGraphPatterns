@@ -21,7 +21,6 @@ import graph.version.Edge;
 import graph.version.LVGraph;
 import graph.version.Node;
 import queries.DBLP;
-import queries.Query;
 import queries.YT;
 import system.Config;
 import system.Main;
@@ -78,6 +77,7 @@ public abstract class DurableMatching {
 
 	// ===============================================================
 	long start;
+
 	/**
 	 * Constructor
 	 * @param lvg
@@ -101,6 +101,7 @@ public abstract class DurableMatching {
 		// initial C
 		Map<Integer, Set<Node>> initC;
 		start = System.currentTimeMillis();
+
 		System.out.println("DurableMatching is Running...");
 		
 		// to start counting the time
@@ -128,7 +129,7 @@ public abstract class DurableMatching {
 		// default ranking is running
 		if (!Config.BINARY_RANKING && !Config.MINMAX_RANKING)
 			threshold = 2;
-		
+
 		while (threshold > 1) {
 			
 			initC = new HashMap<>();
@@ -167,20 +168,13 @@ public abstract class DurableMatching {
 				threshold = getBinaryBasedThreshold();
 			else if (Config.MINMAX_RANKING)
 				threshold = getMinMaxBasedThreshold();
-			else {
-				// default threshold is updated by compute matches
-				// however matches have not been found
-				break;
-			}
 		}
 		
 		System.out.println("sizeOfRank: " + sizeOfRank);
 		System.out.println("Total Recursions: " + totalRecursions);
-
+		
 		// print matches
 		printTopMatches();
-		Query.resultPerIt.write(Query.SIZE +  "\t" + this.totalTime + "\t");
-		Query.resultPerIt.flush();
 	}
 
 	/**
@@ -640,27 +634,126 @@ public abstract class DurableMatching {
 				lifetime = (BitSet) iQ.clone();
 				lifetime.and(n.getLabel(label));
 
-				// if TiNLa(r) is enabled
+				// if TiNLa is enabled
 				if (TiNLa) {
 					found = true;
 
-					for (int layer = 0; layer < Config.TINLA_R; layer++) {
-
+					for (int l : pn.getLabelAdjacency(0)) {
 						// if there is not a neighbor with that label
-						if (!(found = TiNLaFiltering(n, pn, lifetime, layer))) {
-							// remove it
+						// remove it
+						if (n.getTiNLa(0, l) == null) {
+							found = false;
 							it.remove();
 							break;
+						} else { // otherwise get the lifetime and intersect
+							lifetime.and(n.getTiNLa(0, l));
+
+							// check if the neighborhood lifetime intersection is not empty
+							if (lifetime.isEmpty()) {
+								found = false;
+								it.remove();
+								break;
+							}
 						}
 					}
 					
 					if (!found)
 						continue;
+					//TODO support more layers
+					else if (Config.TINLA_R == 2) {
+						for (int l : pn.getLabelAdjacency(1)) {
+							// if there is not a neighbor with that label
+							// remove it
+							if (n.getTiNLa(1, l) == null) {
+								found = false;
+								it.remove();
+								break;
+							} else { // otherwise get the lifetime and intersect
+								lifetime.and(n.getTiNLa(1, l));
+
+								// check if the neighborhood lifetime intersection is not empty
+								if (lifetime.isEmpty()) {
+									found = false;
+									it.remove();
+									break;
+								}
+							}
+						}
+						if (!found)
+							continue;
+					}
+				} else if (Config.TINLA_C_ENABLED) {
+					//TODO
+					found = true;
+
+					for (Entry<Integer, Integer> l :pn.getLabelAdjacency_C(0).entrySet()) {
+
+						// if there is not a neighbor with that label
+						// remove it
+						if (n.getTiNLa_C(0, l.getKey()) == null) {
+							found = false;
+							it.remove();
+							break;
+						} else { // otherwise get the lifetime and intersect
+							lifetime.and(n.getTiNLa_C(0, l.getKey()));
+
+							// check if the neighborhood lifetime intersection is not empty
+							if (lifetime.isEmpty()) {
+								found = false;
+								it.remove();
+								break;
+							} else {
+								 lifetime.and(n.getTiNLa_C(0, l.getKey(), l.getValue(), lifetime));
+								 if (lifetime.isEmpty()) {
+									 found = false;
+									 it.remove();
+									 break;
+								 }
+							}
+						}
+					}
+					
+					if (!found) {
+						continue;
+					} else if (Config.TINLA_R == 2) {
+						//TODO support more layers
+						
+						for (Entry<Integer, Integer> l :pn.getLabelAdjacency_C(1).entrySet()) {
+							
+							// if there is not a neighbor with that label
+							// remove it
+							if (n.getTiNLa_C(1, l.getKey()) == null) {
+								found = false;
+								it.remove();
+								break;
+							} else { // otherwise get the lifetime and intersect
+								lifetime.and(n.getTiNLa_C(1, l.getKey()));
+
+								// check if the neighborhood lifetime intersection is not empty
+								if (lifetime.isEmpty()) {
+									found = false;
+									it.remove();
+									break;
+								} else {
+									 lifetime.and(n.getTiNLa_C(1, l.getKey(), l.getValue(), lifetime));
+									 if (lifetime.isEmpty()) {
+										 found = false;
+										 it.remove();
+										 break;
+									 }
+								}
+							}
+						}
+						if (!found)
+							continue;
+					}		
+				} else if (lifetime.isEmpty()) { // check if Node n lifetime does not contain any bit			
+					it.remove();
+					continue;
 				}
 					
-				// remove node from candidates if their lifetime contains less than one bit
-				// durable means more than one time instant
-				if ((sc = lifetime.cardinality()) <= 1)
+				// remove node from candidates
+				if ((sc = lifetime.cardinality()) == 1)
 					it.remove();
 				else {	
 					if ((current_candidates = rankingBasedOnlifetimeScore.get(sc)) == null) {
@@ -674,32 +767,6 @@ public abstract class DurableMatching {
 		}
 	}
 	
-	/**
-	 * TiNLa filtering
-	 * @param n
-	 * @param pn
-	 * @param lifetime
-	 * @param layer
-	 * @return
-	 */
-	private boolean TiNLaFiltering(Node n, PatternNode pn, BitSet lifetime, int layer) {
-		for (int l : pn.getLabelAdjacency(0)) {
-			
-			// if there is not a neighbor with that label
-			if (n.getTiNLa(layer, l) == null) {
-				return false;
-			} else { // otherwise get the lifetime and intersect
-				lifetime.and(n.getTiNLa(0, l));
-
-				// check if the neighborhood lifetime intersection is not empty
-				if (lifetime.isEmpty())
-					return false;
-			}
-		}
-		
-		return true;
-	}
-
 	/**
 	 * Print topK Matches
 	 * @throws IOException
@@ -778,6 +845,8 @@ public abstract class DurableMatching {
 			
 			if (TiNLa)
 				outputPath+= "tinla(" + Config.TINLA_R + ")_";
+			else if (Config.TINLA_C_ENABLED)
+				outputPath+= "tinla_c(" + Config.TINLA_R + ")_";
 			else if (Config.TIPLA_ENABLED)
 				outputPath+= "tipla_";
 			else

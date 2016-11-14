@@ -31,7 +31,7 @@ public abstract class Query {
 	public static int size;
 	private Runtime runtime;
 	
-	public static FileWriter resultW, resultPerIt;
+	private FileWriter resultW, resultPerIt;
 	private double[] TIME_TiLa;
 	private double[] TIME_TiNLa1;
 	private double[] TIME_TiNLa2;
@@ -56,8 +56,7 @@ public abstract class Query {
 
 		for (label = Config.sizeOfLabels - 1; label >= 0; label--) {
 			System.out.println("Label clique: " + label);
-			label = 0;
-			for (size = 2; size <= Config.QUERY_SIZE; size++) {
+			for (size = 2; size < Config.QUERY_SIZE; size++) {
 				System.out.println("Clique size: " + size);
 
 				pg = new PatternGraph();
@@ -82,6 +81,11 @@ public abstract class Query {
 					new DurableMatching(lvg, pg, iQ, null, true, Main.TiNLa){};
 				}
 			}
+			
+			if (label == 3)
+				label = 1;
+			else
+				break;
 		}
 	}
 	
@@ -110,10 +114,10 @@ public abstract class Query {
 				
 				// call durable matching algorithms
 				if (TiPLa != null) {
-					new DurableMatchingPath(lvg, pg, iQ, true, TiPLa);
+					new DurableMatchingPath(lvg, pg, iQ, false, TiPLa);
 				} else if (lvg.getTiLa() != null) {
 					//TiNLa (r = 1)
-					new DurableMatching(lvg, pg, iQ, null, true, Main.TiNLa){};
+					new DurableMatching(lvg, pg, iQ, null, false, Main.TiNLa){};
 				}
 			}
 			
@@ -123,7 +127,7 @@ public abstract class Query {
 				break;
 		}		
 	}
-	public static int SIZE;
+	
 	/**
 	 * Run random queries
 	 * @throws Exception
@@ -149,8 +153,7 @@ public abstract class Query {
 			System.out.println("ITERATION: " + (i+1));
 
 			for (int size = 2; size <= Config.QUERY_SIZE; size++) {
-				Config.MINMAX_RANKING = true;
-				SIZE = size;
+
 				int n = r.nextInt(Config.sizeOfNodes - 1);
 				Node node = lvg.getNode(n);
 				
@@ -161,28 +164,17 @@ public abstract class Query {
 					// get random query as a pattern graph
 					pg = queryGenerator.getQuery(size);
 
-//					dm = new DurableMatching(lvg, pg, iQ, null, false, false){};
-//					TIME_TiLa[size - 2]+= dm.getTotalExecutionTime();
-//					resultPerIt.write(size + "\t" + dm.getTotalExecutionTime() + "\t");
-
 					Config.TINLA_R = 1;
-					dm = new DurableMatching(lvg, pg, iQ, null, false, true){};
+					dm = new DurableMatching(lvg, pg, iQ, null, false, false){};
 					TIME_TiNLa1[size - 2]+= dm.getTotalExecutionTime();
-//					resultPerIt.write(dm.getTotalExecutionTime() +"\t");
+					resultPerIt.write(size + "\t" + dm.getTotalExecutionTime() + "\t");
 
 					Config.TINLA_R = 2;
-					dm = new DurableMatching(lvg, pg, iQ, null, false, true){};
+					dm = new DurableMatching(lvg, pg, iQ, null, false, false){};
 					TIME_TiNLa2[size - 2]+= dm.getTotalExecutionTime();
-//					resultPerIt.write(dm.getTotalExecutionTime() +"\t");
+					resultPerIt.write(dm.getTotalExecutionTime() +"\t");
 
-					
-					dmp = new DurableMatchingPath(lvg, pg, iQ, false, TiPLa){};
-					TIME_TiPLa[size - 2]+= dmp.getTotalExecutionTime();
-					DURATION[size - 2]+= dmp.getMaxDuration();
-					MATCHES[size - 2]+= dmp.getMatches().size();				
-//					resultPerIt.write(dmp.getTotalExecutionTime() +"\t");
-					resultPerIt.write("\n");
-//					resultPerIt.write(dm.getMaxDuration() + "\t" + dmp.getMatches().size() + "\n");
+					resultPerIt.write(dm.getMaxDuration() + "\t" + dm.getMatches().size() + "\n");
 					
 					resultPerIt.flush();
 				}

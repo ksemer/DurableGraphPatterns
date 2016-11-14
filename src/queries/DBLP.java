@@ -20,10 +20,9 @@ public class DBLP extends Query {
 		// settings for DBLP dataset
 		Config.sizeOfNodes = 1063835;
 		Config.sizeOfLabels = 4;
-		Config.PATH_DATASET = "../files/DBLP_Graph";
-		Config.PATH_LABELS = "../files/DBLP_Authors_Attr";
+		Config.PATH_DATASET = "/experiments/files/DBLP_Graph";
+		Config.PATH_LABELS = "/experiments/files/DBLP_Authors_Attr";
 		Config.ISDIRECTED = false;
-		Config.QUERY_SIZE = 6;
 		Config.MAXIMUM_INTERVAL = 57;
 
 		iQ = new BitSet(Config.MAXIMUM_INTERVAL);

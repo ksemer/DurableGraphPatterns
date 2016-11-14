@@ -66,20 +66,15 @@ public class TimePathIndex {
 	
 			// to contain also the paths of size 0, node label itself
 			for (Node n : g.getNodes()) {
-
 				for (int label = 0; label < Config.sizeOfLabels; label++) {
-//				for (int label = 0; label < Config.sizeOfLabels; label+=7) {
-					// if label exists
-					if (n.getLabel(label) != null) {
-						for (Iterator<Integer> it = n.getLabel(label).stream().iterator(); it.hasNext();) {
-							int t = it.next();
-							
-							if ((set = timePathIndexWT.get(t).get("" + label)) == null) {
-								set = new HashSet<>();
-								timePathIndexWT.get(t).put("" + label, set);
-							}
-							set.add(n);
+					for (Iterator<Integer> it = n.getLabel(label).stream().iterator(); it.hasNext();) {
+						int t = it.next();
+						
+						if ((set = timePathIndexWT.get(t).get("" + label)) == null) {
+							set = new HashSet<>();
+							timePathIndexWT.get(t).put("" + label, set);
 						}
+						set.add(n);
 					}
 				}
 			}
@@ -165,7 +160,7 @@ public class TimePathIndex {
 		BitSet lifetime;
 		
 		for (int l = 0; l < Config.sizeOfLabels; l++) {
-//		for (int l = 0; l < Config.sizeOfLabels; l+=7) {
+			
 			// if nodes has label l
 			if (n.getLabel(l) == null)
 				continue;

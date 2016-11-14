@@ -3,10 +3,12 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import system.Config;
+import system.index.TimeNeighborIndex;
 
 /**
  * This class represents the Node objects
@@ -18,6 +20,7 @@ public class Node{
 	private Map<Integer, BitSet> labels;
 	private Map<Node, Edge> adjacencies;
 	private List<Map<Integer, BitSet>> TiNLa;
+	private List<TimeNeighborIndex> TiNLa_C;
 	//=================================================================
 
 	/**
@@ -34,6 +37,13 @@ public class Node{
 			
 			for (int i = 0; i < Config.TINLA_R; i++)
 				TiNLa.add(i, new HashMap<Integer, BitSet>());
+		}
+		
+		if (Config.TINLA_C_ENABLED) {
+			TiNLa_C = new ArrayList<>(Config.TINLA_R);
+			
+			for (int i = 0; i < Config.TINLA_R; i++)
+				TiNLa_C.add(i, new TimeNeighborIndex());			
 		}
 	}
 
@@ -88,6 +98,25 @@ public class Node{
 		return TiNLa.get(r).get(label);
 	}
 	
+	public BitSet getTiNLa_C(int r, int label, int c, BitSet lifetime) {
+		Map<Integer, Integer> index = TiNLa_C.get(r).getCounter(label);
+		int t;
+		BitSet life = (BitSet) lifetime.clone();
+		
+		for (Iterator<Integer> it = lifetime.stream().iterator(); it.hasNext();) {
+			t = it.next();
+			
+			if (index.get(t) < c)
+				life.set(t, false);
+		}
+		
+		return life;
+	}
+	
+	public BitSet getTiNLa_C(int r, int label) {
+		return TiNLa_C.get(r).getTiNLa(label);
+	}
+	
 	/**
 	 * Update TiNLa(r) set for label the time instant t
 	 * @param r
@@ -128,5 +157,15 @@ public class Node{
 	 */
 	public int getID() {
 		return id;
+	}
+
+	/**
+	 * Update TiNLa_C(r) set for label the time instant t
+	 * @param r
+	 * @param label
+	 * @param t
+	 */
+	public void updateTiNLa_C(int r, int label, int t) {	
+		TiNLa_C.get(r).update(label, t);		
 	}
 }

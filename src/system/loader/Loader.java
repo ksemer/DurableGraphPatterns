@@ -26,56 +26,120 @@ public abstract class Loader {
 	 */
 	public static void createNeighborIndex(LVGraph lvg) {
 		System.out.println("TiNLa(" + Config.TINLA_R + ") construction is starting...");
-		
+		Set<Node> nodes = null;
+
 		long time = System.currentTimeMillis();
 		Node trg;
 		BitSet lifetime;
-		Set<Node> nodes = new HashSet<>(), nodes_toCheck = null;
 
 		// for all nodes
 		for (Node n : lvg.getNodes()) {
+			//TODO support more layers
+			if (Config.TINLA_R == 2)
+				nodes = new HashSet<>();
+
+			// get adjacency
+			for (Edge e : n.getAdjacency()) {
+				trg = e.getTarget();
 				
-			nodes.add(n);
-			
-			if (Config.TINLA_R > 1)
-				nodes_toCheck = new HashSet<>();
-			
-			// for each layer
-			for (int layer = 0; layer < Config.TINLA_R; layer++) {
-				
-				// get nodes to be checked
-				for (Node n1 : nodes) {
-					// check adjacency
-					for (Edge e : n1.getAdjacency()) {
-						trg = e.getTarget();
-						
-						// for the edge lifetime
-						for (Iterator<Integer> it = e.getLifetime().stream().iterator(); it.hasNext();) {
-							int t = it.next();
-							
-							// check which label is active
-							//for (int label = 0; label < Config.sizeOfLabels; label++)
-							for (int label = 0; label < Config.sizeOfLabels; label++)
-								if ((lifetime = trg.getLabel(label)) != null && lifetime.get(t))
-									n.updateTiNLa(layer, label, t);
-						}
-						
-						// if there is a further layer
-						if (layer + 1 < Config.TINLA_R)
-							nodes_toCheck.add(trg);
-					}
-				}
-			
-				// update which nodes need to be checked
-				if (layer + 1 < Config.TINLA_R) {
-					nodes = new HashSet<>(nodes_toCheck);
-					nodes_toCheck.clear();
+				//TODO support more layers
+				if (Config.TINLA_R == 2)
+					nodes.add(trg);
+
+				// for the edge lifetime
+				for (Iterator<Integer> it = e.getLifetime().stream().iterator(); it.hasNext();) {
+					int t = it.next();
+					
+					//FIXME
+					// check which label is active
+//					for (int label = 0; label < Config.sizeOfLabels; label++)
+					for (int label = 0; label < 8; label+=7)
+						if ((lifetime = trg.getLabel(label)) != null && lifetime.get(t))
+							n.updateTiNLa(0, label, t);
 				}
 			}
 			
-			nodes.clear();
+			//TODO support more layers
+			if (Config.TINLA_R == 2) {
+				for (Node n1 : nodes) {
+					for (Edge e : n1.getAdjacency()) {
+						trg = e.getTarget();
+						
+						for (Iterator<Integer> it = e.getLifetime().stream().iterator(); it.hasNext();) {
+							int t = it.next();
+							
+							//FIXME
+							// check which label is active
+							for (int label = 0; label < 8; label+=7)
+								if ((lifetime = trg.getLabel(label)) != null && lifetime.get(t))
+									n.updateTiNLa(1, label, t);
+						}
+					}	
+				}
+			}
 		}
 
 		System.out.println("TiNLa(" + Config.TINLA_R + ") time: " + (System.currentTimeMillis() - time) / 1000 + " (sec)");
+	}
+	
+	/**
+	 * Create TiNLa_C index
+	 * @param lvg
+	 */
+	public static void createNeighborCIndex(LVGraph lvg) {
+		System.out.println("TiNLa_C(" + Config.TINLA_R + ") construction is starting...");
+		Set<Node> nodes = null;
+
+		long time = System.currentTimeMillis();
+		Node trg;
+		BitSet lifetime;
+
+		// for all nodes
+		for (Node n : lvg.getNodes()) {
+			//TODO support more layers
+			if (Config.TINLA_R == 2)
+				nodes = new HashSet<>();
+
+			// get adjacency
+			for (Edge e : n.getAdjacency()) {
+				trg = e.getTarget();
+				
+				//TODO support more layers
+				if (Config.TINLA_R == 2)
+					nodes.add(trg);
+
+				// for the edge lifetime
+				for (Iterator<Integer> it = e.getLifetime().stream().iterator(); it.hasNext();) {
+					int t = it.next();
+					
+					//FIXME
+					// check which label is active
+					for (int label = 0; label < 8; label+=7)
+						if ((lifetime = trg.getLabel(label)) != null && lifetime.get(t))
+							n.updateTiNLa_C(0, label, t);
+				}
+			}
+			
+			//TODO support more layers
+			if (Config.TINLA_R == 2) {
+				for (Node n1 : nodes) {
+					for (Edge e : n1.getAdjacency()) {
+						trg = e.getTarget();
+						
+						for (Iterator<Integer> it = e.getLifetime().stream().iterator(); it.hasNext();) {
+							int t = it.next();
+							
+							//FIXME
+							// check which label is active
+							for (int label = 0; label < 8; label+=7)
+								if ((lifetime = trg.getLabel(label)) != null && lifetime.get(t))
+									n.updateTiNLa_C(1, label, t);
+						}
+					}	
+				}
+			}
+		}
+
+		System.out.println("TiNLa_C(" + Config.TINLA_R + ") time: " + (System.currentTimeMillis() - time) / 1000 + " (sec)");		
 	}
 }

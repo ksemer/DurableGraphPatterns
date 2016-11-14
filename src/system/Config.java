@@ -45,6 +45,7 @@ public final class Config {
 	// time indexes
 	public static boolean TILA_ENABLED;
 	public static boolean TINLA_ENABLED;
+	public static boolean TINLA_C_ENABLED;
 	public static boolean TIPLA_ENABLED;
 	public static int TIPLA_MAX_DEPTH;
 	public static int TINLA_R;

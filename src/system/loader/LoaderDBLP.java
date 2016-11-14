@@ -64,7 +64,7 @@ public class LoaderDBLP extends Loader {
 		loadAttributes(lvg);
 		loadNames(lvg.size());
 
-		if (Config.TINLA_ENABLED) {
+		if (Config.TINLA_ENABLED || Config.TINLA_C_ENABLED) {
 			Runtime runtime = null;
 			long memory;
 			
@@ -77,17 +77,27 @@ public class LoaderDBLP extends Loader {
 				// Calculate the used memory
 				memory = runtime.totalMemory() - runtime.freeMemory();
 				
-				System.out.println("Used memory is megabytes without TiNLa: " + Main.bytesToMegabytes(memory));
+				if (Config.TINLA_ENABLED)
+					System.out.println("Used memory is megabytes without TiNLa: " + Main.bytesToMegabytes(memory));
+				else
+					System.out.println("Used memory is megabytes without TiNLa_C: " + Main.bytesToMegabytes(memory));
 			}
 			
-			createNeighborIndex(lvg);
+			if (Config.TINLA_ENABLED)
+				createNeighborIndex(lvg);
+			else if (Config.TINLA_C_ENABLED)
+				createNeighborCIndex(lvg);
 		    
 			if (Config.SHOW_MEMORY) {
 				// Run the garbage collector
 				runtime.gc();
 		    	// Calculate the used memory
 		    	memory = runtime.totalMemory() - runtime.freeMemory();
-		    	System.out.println("Used memory is megabytes with (TiNLa): " + Main.bytesToMegabytes(memory));
+		    	
+				if (Config.TINLA_ENABLED)
+					System.out.println("Used memory is megabytes with (TiNLa): " + Main.bytesToMegabytes(memory));
+				else if (Config.TINLA_C_ENABLED)
+					System.out.println("Used memory is megabytes with (TiNLa_C): " + Main.bytesToMegabytes(memory));
 			}
 		}
 		
@@ -157,7 +167,7 @@ public class LoaderDBLP extends Loader {
 	private static void loadNames(int size) throws IOException {
 		System.out.println("Loading authors names in memory...");
 		
-		BufferedReader br = new BufferedReader(new FileReader("../files/DBLP_Authors_MAP"));      
+		BufferedReader br = new BufferedReader(new FileReader("/experiments/files/DBLP_Authors_MAP"));      
 		String line = null;
 		String[] token;
 

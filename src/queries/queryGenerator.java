@@ -68,7 +68,7 @@ public class queryGenerator {
 	private static int getMaxLabel(Node src) {
 		int max = 0, label = 0;
 		
-		for (int l = 0; l < Config.sizeOfLabels; l++) {
+		for (int l = 0; l < 8; l+=7) {
 			if (src.getLabel(l) != null && src.getLabel(l).cardinality() > max) {
 				max = src.getLabel(l).cardinality();
 				label = l;

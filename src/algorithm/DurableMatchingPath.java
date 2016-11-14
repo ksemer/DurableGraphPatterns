@@ -17,7 +17,7 @@ import java.util.TreeMap;
 import system.index.PatternPathIndex;
 
 /**
- * DurableMatching using TiPLa
+ * DruablleMatching using TiPLa
  * @author ksemer
  */
 public class DurableMatchingPath extends DurableMatching {
@@ -47,8 +47,6 @@ public class DurableMatchingPath extends DurableMatching {
 		for (PatternNode pn : pg.getNodes()) {
 			candidates.put(pn.getID(), new HashSet<Node>());		
 			Rank.put(pn.getID(), new TreeMap<>());
-			// required for directed graphs
-			pn.createLabelAdjacency();
 		}
 		
 		// for each pattern node
