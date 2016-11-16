@@ -3,7 +3,7 @@ package algorithm;
 import graph.pattern.PatternGraph;
 import graph.pattern.PatternNode;
 import graph.version.Node;
-import graph.version.LVGraph;
+import graph.version.Graph;
 
 import java.util.BitSet;
 import java.util.HashMap;
@@ -11,10 +11,11 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import algorithm.indexes.PatternPathIndex;
+
 import java.util.Set;
 import java.util.TreeMap;
-
-import system.index.PatternPathIndex;
 
 /**
  * DruablleMatching using TiPLa
@@ -22,13 +23,13 @@ import system.index.PatternPathIndex;
  */
 public class DurableMatchingPath extends DurableMatching {
 
-	public DurableMatchingPath(LVGraph lvg, PatternGraph pg, BitSet iQ, boolean continuously,
+	public DurableMatchingPath(Graph lvg, PatternGraph pg, BitSet iQ, boolean continuously,
 			Map<Integer, Map<String, Set<Node>>> timePathIndex) throws Exception {
 		super(lvg, pg, iQ, timePathIndex, continuously, false);
 	}
 
 	@Override
-	public void filterCandidates(LVGraph lvg, PatternGraph pg, BitSet iQ) {
+	public void filterCandidates(Graph lvg, PatternGraph pg, BitSet iQ) {
 		
 		// create candidates set pattern node--> set of lvg nodes
 		Map<Integer, Set<Node>> candidates = new HashMap<Integer, Set<Node>>(pg.size());

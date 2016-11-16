@@ -10,7 +10,7 @@ import algorithm.DurableMatching;
 import algorithm.DurableMatchingPath;
 import graph.pattern.PatternGraph;
 import graph.pattern.PatternNode;
-import graph.version.LVGraph;
+import graph.version.Graph;
 import graph.version.Node;
 import system.Config;
 import system.Main;
@@ -21,7 +21,7 @@ import system.Main;
  */
 public abstract class Query {
 	//=================================================================
-	protected LVGraph lvg;
+	protected Graph lvg;
 	private PatternGraph pg;
 	protected BitSet iQ;
 	public Map<Integer, Map<String, Set<Node>>> TiPLa;
@@ -154,7 +154,7 @@ public abstract class Query {
 
 			for (int size = 2; size <= Config.QUERY_SIZE; size++) {
 
-				int n = r.nextInt(Config.sizeOfNodes - 1);
+				int n = r.nextInt(lvg.size() - 1);
 				Node node = lvg.getNode(n);
 				
 				// node do not exist search for the same size

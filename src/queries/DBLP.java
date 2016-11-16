@@ -2,9 +2,9 @@ package queries;
 
 import java.util.BitSet;
 
+import algorithm.indexes.TimePathIndex;
+import graph.version.loader.LoaderDBLP;
 import system.Config;
-import system.index.TimePathIndex;
-import system.loader.LoaderDBLP;
 
 /**
  * DBLP query
@@ -18,7 +18,6 @@ public class DBLP extends Query {
 	 */
 	public void run() throws Exception {
 		// settings for DBLP dataset
-		Config.sizeOfNodes = 1063835;
 		Config.sizeOfLabels = 4;
 		Config.PATH_DATASET = "/experiments/files/DBLP_Graph";
 		Config.PATH_LABELS = "/experiments/files/DBLP_Authors_Attr";

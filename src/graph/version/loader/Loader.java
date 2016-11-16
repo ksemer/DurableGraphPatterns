@@ -1,4 +1,4 @@
-package system.loader;
+package graph.version.loader;
 
 import java.io.IOException;
 import java.util.BitSet;
@@ -7,7 +7,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import graph.version.Edge;
-import graph.version.LVGraph;
+import graph.version.Graph;
 import graph.version.Node;
 import system.Config;
 
@@ -17,14 +17,14 @@ import system.Config;
  */
 public abstract class Loader {
 	
-	abstract LVGraph loadDataset() throws IOException;
-	protected abstract void loadAttributes(LVGraph lvg) throws IOException;
+	abstract Graph loadDataset() throws IOException;
+	protected abstract void loadAttributes(Graph lvg) throws IOException;
 	
 	/**
 	 * Create TiNLa index
 	 * @param lvg
 	 */
-	public static void createNeighborIndex(LVGraph lvg) {
+	public static void createNeighborIndex(Graph lvg) {
 		System.out.println("TiNLa(" + Config.TINLA_R + ") construction is starting...");
 		Set<Node> nodes = null;
 
@@ -86,7 +86,7 @@ public abstract class Loader {
 	 * Create TiNLa_C index
 	 * @param lvg
 	 */
-	public static void createNeighborCIndex(LVGraph lvg) {
+	public static void createNeighborCIndex(Graph lvg) {
 		System.out.println("TiNLa_C(" + Config.TINLA_R + ") construction is starting...");
 		Set<Node> nodes = null;
 

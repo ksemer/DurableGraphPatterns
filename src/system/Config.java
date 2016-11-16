@@ -18,7 +18,6 @@ public final class Config {
 	// maximum interval of graph lifetime
 	public static int MAXIMUM_INTERVAL;
 	
-	public static int sizeOfNodes;
 	public static int sizeOfLabels;
 	public static int RANDOM_ITERATIONS;
 	public static int QUERY_SIZE;

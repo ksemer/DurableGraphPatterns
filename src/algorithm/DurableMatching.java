@@ -18,13 +18,13 @@ import java.util.Map.Entry;
 import graph.pattern.PatternGraph;
 import graph.pattern.PatternNode;
 import graph.version.Edge;
-import graph.version.LVGraph;
+import graph.version.Graph;
 import graph.version.Node;
+import graph.version.loader.LoaderDBLP;
 import queries.DBLP;
 import queries.YT;
 import system.Config;
 import system.Main;
-import system.loader.LoaderDBLP;
 
 /**
  * DurableMatching Algorithm abstract class
@@ -34,7 +34,7 @@ public abstract class DurableMatching {
 	// ===============================================================
 
 	// labeled version graph
-	protected LVGraph lvg;
+	protected Graph lvg;
 	
 	// pattern graph
 	protected PatternGraph pg;
@@ -87,7 +87,7 @@ public abstract class DurableMatching {
 	 * @param TiLNa
 	 * @throws Exception 
 	 */
-	public DurableMatching(LVGraph lvg, PatternGraph pg, BitSet iQ,
+	public DurableMatching(Graph lvg, PatternGraph pg, BitSet iQ,
 			Map<Integer, Map<String, Set<Node>>> TiPLa, boolean continuously,
 			boolean TiNLa) throws Exception {
 		
@@ -600,7 +600,7 @@ public abstract class DurableMatching {
 	 * @param pg
 	 * @param iQ
 	 */
-	public void filterCandidates(LVGraph lvg, PatternGraph pg, BitSet iQ) {
+	public void filterCandidates(Graph lvg, PatternGraph pg, BitSet iQ) {
 		Map<Integer, Set<Node>> phi = new HashMap<Integer, Set<Node>>(pg.size());
 
 		// initialize

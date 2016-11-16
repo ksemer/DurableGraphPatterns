@@ -2,9 +2,9 @@ package queries;
 
 import java.util.BitSet;
 
+import algorithm.indexes.TimePathIndex;
+import graph.version.loader.LoaderYT;
 import system.Config;
-import system.index.TimePathIndex;
-import system.loader.LoaderYT;
 
 /**
  * YT query
@@ -13,7 +13,6 @@ import system.loader.LoaderYT;
 public class YT extends Query {
 	
 	public void run() throws Exception {
-		Config.sizeOfNodes = 1138499;
 		Config.sizeOfLabels = 10;
 		Config.PATH_DATASET = "/experiments/files/yt_graph";
 		Config.PATH_LABELS = "/experiments/files/yt_label_" + Config.sizeOfLabels;

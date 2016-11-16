@@ -1,4 +1,4 @@
-package system.index;
+package algorithm.indexes;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -17,21 +17,23 @@ import system.Config;
 
 /**
  * PatternPath Index class
- * @author ksemertz
+ * 
+ * @author ksemer
  */
 public class PatternPathIndex {
-	//===============================================
+	// ===============================================
 	private Map<String, Set<PatternNode>> pathIndexWT;
-	//temp variable
+	// temp variable
 	private Map<Integer, boolean[]> hasBeenVisited;
 	private int max_depth;
 
 	// help variables
 	private Set<PatternNode> set;
-	//===============================================
-	
+	// ===============================================
+
 	/**
 	 * Constructor
+	 * 
 	 * @param max_depth
 	 * @throws Exception
 	 */
@@ -41,8 +43,9 @@ public class PatternPathIndex {
 	}
 
 	/**
-	 * Create path index
-	 * Return for each pattern node the set of paths started from it
+	 * Create path index Return for each pattern node the set of paths started
+	 * from it
+	 * 
 	 * @param pg
 	 * @return
 	 */
@@ -54,59 +57,60 @@ public class PatternPathIndex {
 			for (PatternNode n : pg.getNodes()) {
 				if (!hasBeenVisited.containsKey(n.getID()))
 					hasBeenVisited.put(n.getID(), new boolean[pg.size()]);
-				
+
 				traversePath(n, depth);
 			}
-		
-		// key -> pattern node id, 
+
+		// key -> pattern node id,
 		// value -> set of string which includes all the paths from pattern node
 		Map<Integer, Set<String>> in = new HashMap<>();
-		
+
 		// initialize
 		for (PatternNode p : pg.getNodes()) {
 			in.put(p.getID(), new HashSet<>());
-			
+
 			if (Config.ISDIRECTED)
 				// path size of 0 (contains only it self)
 				if (p.getAdjacency().isEmpty())
-					in.get(p.getID()).add("" + p.getLabel());
+				in.get(p.getID()).add("" + p.getLabel());
 		}
-		
+
 		// iterate path index
 		for (Entry<String, Set<PatternNode>> entry : pathIndexWT.entrySet()) {
-		    String path = entry.getKey();
-		    
-		    // update in for each pattern node add the paths
-		    for (PatternNode p : entry.getValue()) 
-		    	in.get(p.getID()).add(path);	
+			String path = entry.getKey();
+
+			// update in for each pattern node add the paths
+			for (PatternNode p : entry.getValue())
+				in.get(p.getID()).add(path);
 		}
-		
+
 		// print for each pattern node its paths
 		for (PatternNode p : pg.getNodes())
 			System.out.println("PNodeID: " + p.getID() + "->" + in.get(p.getID()));
-		
+
 		return in;
 	}
-	
+
 	/**
 	 * TraversePath
+	 * 
 	 * @param n
 	 * @param max_depth
 	 */
 	private void traversePath(PatternNode n, int max_depth) {
-		
+
 		Deque<n_info> toBeVisited = new ArrayDeque<>();
 		List<PatternNode> path;
-		
+
 		n_info info = new n_info(n, null, 0);
 		toBeVisited.add(info);
-		
+
 		while (!toBeVisited.isEmpty()) {
 			info = toBeVisited.poll();
-			
+
 			if (info.depth == max_depth) {
 				path = new ArrayList<>();
-					
+
 				while (true) {
 					if (info.father == null) {
 						if (max_depth == this.max_depth)
@@ -114,26 +118,26 @@ public class PatternPathIndex {
 
 						path.add(info.n);
 						break;
-					}	
-						
+					}
+
 					path.add(info.n);
 					info = info.father;
 				}
-				
+
 				Collections.reverse(path);
-				
+
 				// call recursive
 				rec_labelComp(path, path.get(0), "", 0);
-			
+
 				continue;
 			}
-							
+
 			for (PatternNode trg : info.n.getAdjacency()) {
 				if (hasBeenVisited.get(n.getID())[trg.getID()])
 					continue;
-				
-				if (info.father == null) {		
-						toBeVisited.add(new n_info(trg, info, info.depth + 1));
+
+				if (info.father == null) {
+					toBeVisited.add(new n_info(trg, info, info.depth + 1));
 				} else if (!info.father.n.equals(trg)) {
 					toBeVisited.add(new n_info(trg, info, info.depth + 1));
 				}
@@ -143,6 +147,7 @@ public class PatternPathIndex {
 
 	/**
 	 * Recursive function
+	 * 
 	 * @param path
 	 * @param src
 	 * @param label
@@ -155,19 +160,19 @@ public class PatternPathIndex {
 			if (n.getLabel() == i) {
 				if (depth + 1 < path.size())
 					rec_labelComp(path, src, label + "|" + i, depth + 1);
-				else {		
+				else {
 					// i is the next label in path
 					// we use integers to denote labels
 					String Path = label + "|" + i;
-	
+
 					if ((set = pathIndexWT.get(Path)) == null) {
 						set = new HashSet<>();
 						pathIndexWT.put(Path, set);
 					}
-	
+
 					set.add(src);
-				}	
-			}	
+				}
+			}
 		}
 	}
 
@@ -175,7 +180,7 @@ public class PatternPathIndex {
 		PatternNode n;
 		n_info father;
 		int depth;
-		
+
 		public n_info(PatternNode n, n_info father, int depth) {
 			this.n = n;
 			this.father = father;
