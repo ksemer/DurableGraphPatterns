@@ -65,9 +65,7 @@ public class TimeNeighborIndex {
 			}
 
 			lifetime.set(t);
-		}
-
-		if (Config.TINLA_C_ENABLED) {
+		} else if (Config.CTINLA_ENABLED) {
 			if ((tmpCounter = CTiNLa.get(label)) == null) {
 				tmpCounter = new HashMap<>();
 				tmpCounter.put(t, 1);

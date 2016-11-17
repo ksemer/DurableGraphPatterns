@@ -54,7 +54,7 @@ public abstract class Query {
 	 */
 	public void runClique() throws Exception {
 
-		for (label = Config.sizeOfLabels - 1; label >= 0; label--) {
+		for (label = Config.SIZE_OF_LABELS - 1; label >= 0; label--) {
 			System.out.println("Label clique: " + label);
 			for (size = 2; size < Config.QUERY_SIZE; size++) {
 				System.out.println("Clique size: " + size);

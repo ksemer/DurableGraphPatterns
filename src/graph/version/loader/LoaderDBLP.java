@@ -7,7 +7,9 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import graph.version.Graph;
 import graph.version.Node;
@@ -67,11 +69,11 @@ public class LoaderDBLP extends Loader {
 		loadAttributes(lvg);
 		loadNames(lvg.size());
 
-		// For displaying memory usage
-		if (Config.TINLA_ENABLED || Config.TINLA_C_ENABLED) {
+		if (Config.TINLA_ENABLED || Config.CTINLA_ENABLED) {
 			Runtime runtime = null;
 			long memory;
 
+			// For displaying memory usage
 			if (Config.SHOW_MEMORY) {
 				runtime = Runtime.getRuntime();
 
@@ -83,14 +85,11 @@ public class LoaderDBLP extends Loader {
 
 				if (Config.TINLA_ENABLED)
 					System.out.println("Used memory is megabytes without TiNLa: " + Main.bytesToMegabytes(memory));
-				else
-					System.out.println("Used memory is megabytes without TiNLa_C: " + Main.bytesToMegabytes(memory));
+				else if (Config.CTINLA_ENABLED)
+					System.out.println("Used memory is megabytes without CTiNLa: " + Main.bytesToMegabytes(memory));
 			}
 
-			if (Config.TINLA_ENABLED)
-				createNeighborIndex(lvg);
-			else if (Config.TINLA_C_ENABLED)
-				createNeighborCIndex(lvg);
+			createNeighborIndex(lvg);
 
 			if (Config.SHOW_MEMORY) {
 				// Run the garbage collector
@@ -100,8 +99,8 @@ public class LoaderDBLP extends Loader {
 
 				if (Config.TINLA_ENABLED)
 					System.out.println("Used memory is megabytes with (TiNLa): " + Main.bytesToMegabytes(memory));
-				else if (Config.TINLA_C_ENABLED)
-					System.out.println("Used memory is megabytes with (TiNLa_C): " + Main.bytesToMegabytes(memory));
+				else if (Config.CTINLA_ENABLED)
+					System.out.println("Used memory is megabytes with (CTiNLa): " + Main.bytesToMegabytes(memory));
 			}
 		}
 
@@ -127,6 +126,8 @@ public class LoaderDBLP extends Loader {
 
 		// attributes for publications count
 		if ((line = br.readLine()).contains("Publications_count")) {
+			// update labels size
+			Config.SIZE_OF_LABELS = 4;
 
 			while ((line = br.readLine()) != null) {
 				String[] token = line.split("\\|");
@@ -160,6 +161,8 @@ public class LoaderDBLP extends Loader {
 				}
 			}
 		} else if (line.contains("Conferences_count")) {
+			Set<Integer> conferences = new HashSet<>();
+			
 			// attributes for conferences
 			while ((line = br.readLine()) != null) {
 				String[] token = line.split("\t");
@@ -176,6 +179,8 @@ public class LoaderDBLP extends Loader {
 
 				// get conference id
 				int conf = Integer.parseInt(node_conf[1]);
+				
+				conferences.add(conf);
 
 				// years that author published in conf
 				String[] years = token[1].split(",");
@@ -187,6 +192,8 @@ public class LoaderDBLP extends Loader {
 					lvg.udpateTiLa(value, conf, node);
 				}
 			}
+			
+			Config.SIZE_OF_LABELS = conferences.size();
 		}
 
 		br.close();

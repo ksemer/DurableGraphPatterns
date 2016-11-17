@@ -95,11 +95,11 @@ public class LoaderProteins extends Loader {
 
 		System.out.println("TiLa time: " + (System.currentTimeMillis() - time) / 1000);
 
-		// For displaying memory usage
-		if (Config.TINLA_ENABLED || Config.TINLA_C_ENABLED) {
+		if (Config.TINLA_ENABLED || Config.CTINLA_ENABLED) {
 			Runtime runtime = null;
 			long memory;
 
+			// For displaying memory usage
 			if (Config.SHOW_MEMORY) {
 				runtime = Runtime.getRuntime();
 
@@ -111,14 +111,11 @@ public class LoaderProteins extends Loader {
 
 				if (Config.TINLA_ENABLED)
 					System.out.println("Used memory is megabytes without TiNLa: " + Main.bytesToMegabytes(memory));
-				else
-					System.out.println("Used memory is megabytes without TiNLa_C: " + Main.bytesToMegabytes(memory));
+				else if (Config.CTINLA_ENABLED)
+					System.out.println("Used memory is megabytes without CTiNLa: " + Main.bytesToMegabytes(memory));
 			}
 
-			if (Config.TINLA_ENABLED)
-				createNeighborIndex(lvg);
-			else if (Config.TINLA_C_ENABLED)
-				createNeighborCIndex(lvg);
+			createNeighborIndex(lvg);
 
 			if (Config.SHOW_MEMORY) {
 				// Run the garbage collector
@@ -128,8 +125,8 @@ public class LoaderProteins extends Loader {
 
 				if (Config.TINLA_ENABLED)
 					System.out.println("Used memory is megabytes with (TiNLa): " + Main.bytesToMegabytes(memory));
-				else if (Config.TINLA_C_ENABLED)
-					System.out.println("Used memory is megabytes with (TiNLa_C): " + Main.bytesToMegabytes(memory));
+				else if (Config.CTINLA_ENABLED)
+					System.out.println("Used memory is megabytes with (CTiNLa): " + Main.bytesToMegabytes(memory));
 			}
 		}
 

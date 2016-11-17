@@ -22,7 +22,7 @@ public class Node {
 	private Map<Integer, BitSet> labels;
 	private Map<Node, Edge> adjacencies;
 	private List<Map<Integer, BitSet>> TiNLa;
-	private List<TimeNeighborIndex> TiNLa_C;
+	private List<TimeNeighborIndex> CTiNLa;
 	// =================================================================
 
 	/**
@@ -42,11 +42,11 @@ public class Node {
 				TiNLa.add(i, new HashMap<Integer, BitSet>());
 		}
 
-		if (Config.TINLA_C_ENABLED) {
-			TiNLa_C = new ArrayList<>(Config.TINLA_R);
+		if (Config.CTINLA_ENABLED) {
+			CTiNLa = new ArrayList<>(Config.CTINLA_R);
 
-			for (int i = 0; i < Config.TINLA_R; i++)
-				TiNLa_C.add(i, new TimeNeighborIndex());
+			for (int i = 0; i < Config.CTINLA_R; i++)
+				CTiNLa.add(i, new TimeNeighborIndex());
 		}
 	}
 
@@ -75,6 +75,15 @@ public class Node {
 	 */
 	public BitSet getLabel(int label) {
 		return labels.get(label);
+	}
+
+	/**
+	 * Return labels structure
+	 * 
+	 * @return
+	 */
+	public Map<Integer, BitSet> getLabels() {
+		return labels;
 	}
 
 	/**
@@ -120,7 +129,7 @@ public class Node {
 	public BitSet getTiNLa_C(int r, int label, int c, BitSet lifetime) {
 		int t;
 		BitSet life = (BitSet) lifetime.clone();
-		Map<Integer, Integer> index = TiNLa_C.get(r).getCounter(label);
+		Map<Integer, Integer> index = CTiNLa.get(r).getCounter(label);
 
 		for (Iterator<Integer> it = lifetime.stream().iterator(); it.hasNext();) {
 			t = it.next();
@@ -142,7 +151,7 @@ public class Node {
 	 * @return
 	 */
 	public BitSet getTiNLa_C(int r, int label) {
-		return TiNLa_C.get(r).getTiNLa(label);
+		return CTiNLa.get(r).getTiNLa(label);
 	}
 
 	/**
@@ -161,6 +170,17 @@ public class Node {
 		}
 
 		lifetime.set(t);
+	}
+
+	/**
+	 * Update CTiNLa(r) set for label the time instant t
+	 * 
+	 * @param r
+	 * @param label
+	 * @param t
+	 */
+	public void updateCTiNLa(int r, int label, int t) {
+		CTiNLa.get(r).update(label, t);
 	}
 
 	/**
@@ -189,16 +209,5 @@ public class Node {
 	 */
 	public int getID() {
 		return id;
-	}
-
-	/**
-	 * Update TiNLa_C(r) set for label the time instant t
-	 * 
-	 * @param r
-	 * @param label
-	 * @param t
-	 */
-	public void updateTiNLa_C(int r, int label, int t) {
-		TiNLa_C.get(r).update(label, t);
 	}
 }

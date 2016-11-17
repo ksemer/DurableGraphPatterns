@@ -68,7 +68,7 @@ public class TimePathIndex {
 
 			// to contain also the paths of size 0, node label itself
 			for (Node n : g.getNodes()) {
-				for (int label = 0; label < Config.sizeOfLabels; label++) {
+				for (int label = 0; label < Config.SIZE_OF_LABELS; label++) {
 					for (Iterator<Integer> it = n.getLabel(label).stream().iterator(); it.hasNext();) {
 						int t = it.next();
 
@@ -163,7 +163,7 @@ public class TimePathIndex {
 		Node n = path.get(depth);
 		BitSet lifetime;
 
-		for (int l = 0; l < Config.sizeOfLabels; l++) {
+		for (int l = 0; l < Config.SIZE_OF_LABELS; l++) {
 
 			// if nodes has label l
 			if (n.getLabel(l) == null)

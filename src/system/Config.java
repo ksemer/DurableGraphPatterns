@@ -18,7 +18,7 @@ public final class Config {
 	// maximum interval of graph lifetime
 	public static int MAXIMUM_INTERVAL;
 	
-	public static int sizeOfLabels;
+	public static int SIZE_OF_LABELS;
 	public static int RANDOM_ITERATIONS;
 	public static int QUERY_SIZE;
 	public static boolean LABELS_CHANGE;
@@ -44,10 +44,11 @@ public final class Config {
 	// time indexes
 	public static boolean TILA_ENABLED;
 	public static boolean TINLA_ENABLED;
-	public static boolean TINLA_C_ENABLED;
+	public static boolean CTINLA_ENABLED;
 	public static boolean TIPLA_ENABLED;
 	public static int TIPLA_MAX_DEPTH;
 	public static int TINLA_R;
+	public static int CTINLA_R;
 	//====================================================
 	
 	/**

@@ -18,7 +18,6 @@ public class DBLP extends Query {
 	 */
 	public void run() throws Exception {
 		// settings for DBLP dataset
-		Config.sizeOfLabels = 4;
 		Config.PATH_DATASET = "/experiments/files/DBLP_Graph";
 		Config.PATH_LABELS = "/experiments/files/DBLP_Authors_Attr";
 		Config.ISDIRECTED = false;

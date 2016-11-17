@@ -156,7 +156,7 @@ public class PatternPathIndex {
 	private void rec_labelComp(List<PatternNode> path, PatternNode src, String label, int depth) {
 		PatternNode n = path.get(depth);
 
-		for (int i = 0; i < Config.sizeOfLabels; i++) {
+		for (int i = 0; i < Config.SIZE_OF_LABELS; i++) {
 			if (n.getLabel() == i) {
 				if (depth + 1 < path.size())
 					rec_labelComp(path, src, label + "|" + i, depth + 1);

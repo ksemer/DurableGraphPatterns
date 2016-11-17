@@ -18,7 +18,7 @@ public class Main {
 		Config.TILA_ENABLED = true;
 		
 		Config.TINLA_ENABLED = false;
-		Config.TINLA_C_ENABLED = true;
+		Config.CTINLA_ENABLED = true;
 		
 		Config.TIPLA_ENABLED = false;
 		Config.TIPLA_MAX_DEPTH = 2;

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import graph.version.Edge;
@@ -13,133 +14,93 @@ import system.Config;
 
 /**
  * Loader abstract class
+ * 
  * @author ksemer
  */
 public abstract class Loader {
-	
+
 	abstract Graph loadDataset() throws IOException;
+
 	protected abstract void loadAttributes(Graph lvg) throws IOException;
-	
+
 	/**
-	 * Create TiNLa index
+	 * Create TiNLa && CTiNLa index
+	 * 
 	 * @param lvg
 	 */
 	public static void createNeighborIndex(Graph lvg) {
-		System.out.println("TiNLa(" + Config.TINLA_R + ") construction is starting...");
-		Set<Node> nodes = null;
-
-		long time = System.currentTimeMillis();
+		int R = -1, label;
 		Node trg;
 		BitSet lifetime;
 
-		// for all nodes
-		for (Node n : lvg.getNodes()) {
-			//TODO support more layers
-			if (Config.TINLA_R == 2)
-				nodes = new HashSet<>();
-
-			// get adjacency
-			for (Edge e : n.getAdjacency()) {
-				trg = e.getTarget();
-				
-				//TODO support more layers
-				if (Config.TINLA_R == 2)
-					nodes.add(trg);
-
-				// for the edge lifetime
-				for (Iterator<Integer> it = e.getLifetime().stream().iterator(); it.hasNext();) {
-					int t = it.next();
-					
-					//FIXME
-					// check which label is active
-//					for (int label = 0; label < Config.sizeOfLabels; label++)
-					for (int label = 0; label < 8; label+=7)
-						if ((lifetime = trg.getLabel(label)) != null && lifetime.get(t))
-							n.updateTiNLa(0, label, t);
-				}
-			}
-			
-			//TODO support more layers
-			if (Config.TINLA_R == 2) {
-				for (Node n1 : nodes) {
-					for (Edge e : n1.getAdjacency()) {
-						trg = e.getTarget();
-						
-						for (Iterator<Integer> it = e.getLifetime().stream().iterator(); it.hasNext();) {
-							int t = it.next();
-							
-							//FIXME
-							// check which label is active
-							for (int label = 0; label < 8; label+=7)
-								if ((lifetime = trg.getLabel(label)) != null && lifetime.get(t))
-									n.updateTiNLa(1, label, t);
-						}
-					}	
-				}
-			}
+		if (Config.TINLA_ENABLED) {
+			System.out.println("TiNLa(" + Config.TINLA_R + ") construction is starting...");
+			R = Config.TINLA_R;
+		} else if (Config.CTINLA_ENABLED) {
+			System.out.println("CTiNLa(" + Config.CTINLA_R + ") construction is starting...");
+			R = Config.CTINLA_R;
 		}
-
-		System.out.println("TiNLa(" + Config.TINLA_R + ") time: " + (System.currentTimeMillis() - time) / 1000 + " (sec)");
-	}
-	
-	/**
-	 * Create TiNLa_C index
-	 * @param lvg
-	 */
-	public static void createNeighborCIndex(Graph lvg) {
-		System.out.println("TiNLa_C(" + Config.TINLA_R + ") construction is starting...");
-		Set<Node> nodes = null;
 
 		long time = System.currentTimeMillis();
-		Node trg;
-		BitSet lifetime;
 
 		// for all nodes
 		for (Node n : lvg.getNodes()) {
-			//TODO support more layers
-			if (Config.TINLA_R == 2)
-				nodes = new HashSet<>();
 
-			// get adjacency
-			for (Edge e : n.getAdjacency()) {
-				trg = e.getTarget();
-				
-				//TODO support more layers
-				if (Config.TINLA_R == 2)
-					nodes.add(trg);
+			Set<Node> visited = new HashSet<>();
+			Set<Edge> temp_edges = new HashSet<>();
+			Set<Edge> adjacency = new HashSet<>(n.getAdjacency());
 
-				// for the edge lifetime
-				for (Iterator<Integer> it = e.getLifetime().stream().iterator(); it.hasNext();) {
-					int t = it.next();
-					
-					//FIXME
-					// check which label is active
-					for (int label = 0; label < 8; label+=7)
-						if ((lifetime = trg.getLabel(label)) != null && lifetime.get(t))
-							n.updateTiNLa_C(0, label, t);
-				}
-			}
-			
-			//TODO support more layers
-			if (Config.TINLA_R == 2) {
-				for (Node n1 : nodes) {
-					for (Edge e : n1.getAdjacency()) {
-						trg = e.getTarget();
-						
-						for (Iterator<Integer> it = e.getLifetime().stream().iterator(); it.hasNext();) {
+			// for each r
+			for (int r = 0; r < R; r++) {
+
+				// for each adjacent node of radius r
+				for (Edge e : adjacency) {
+					trg = e.getTarget();
+
+					// for avoiding cycles
+					if (R > 2 && visited.contains(trg))
+						continue;
+
+					// for each label of trg node
+					for (Entry<Integer, BitSet> entry : trg.getLabels().entrySet()) {
+						// label
+						label = entry.getKey();
+
+						// lifetime of the label
+						lifetime = entry.getValue();
+
+						// for each active time instant update TiNLa index
+						for (Iterator<Integer> it = lifetime.stream().iterator(); it.hasNext();) {
 							int t = it.next();
-							
-							//FIXME
-							// check which label is active
-							for (int label = 0; label < 8; label+=7)
-								if ((lifetime = trg.getLabel(label)) != null && lifetime.get(t))
-									n.updateTiNLa_C(1, label, t);
+
+							if (Config.TINLA_ENABLED)
+								n.updateTiNLa(r, label, t);
+							else if (Config.CTINLA_ENABLED)
+								n.updateCTiNLa(r, label, t);
 						}
-					}	
+					}
+
+					// store in temp set the edges of the next hop
+					temp_edges.addAll(trg.getAdjacency());
+
+					if (R > 2) {
+						// add node to visited set
+						visited.add(trg);
+					}
 				}
+
+				// clear and set adjacency to show the next hop
+				adjacency.clear();
+				adjacency.addAll(temp_edges);
+				temp_edges.clear();
 			}
 		}
 
-		System.out.println("TiNLa_C(" + Config.TINLA_R + ") time: " + (System.currentTimeMillis() - time) / 1000 + " (sec)");		
+		if (Config.TINLA_ENABLED)
+			System.out.println(
+					"TiNLa(" + Config.TINLA_R + ") time: " + (System.currentTimeMillis() - time) / 1000 + " (sec)");
+		else if (Config.CTINLA_ENABLED)
+			System.out.println(
+					"CTiNLa(" + Config.CTINLA_R + ") time: " + (System.currentTimeMillis() - time) / 1000 + " (sec)");
 	}
 }

@@ -607,8 +607,9 @@ public abstract class DurableMatching {
 		for (PatternNode pn : pg.getNodes()) {
 			phi.put(pn.getID(), new HashSet<Node>());		
 			Rank.put(pn.getID(), new TreeMap<>());
-			pn.createLabelAdjacency();
 		}
+		
+		pg.createLabelAdjacency();
 
 		boolean found;
 		BitSet lifetime;
@@ -682,7 +683,7 @@ public abstract class DurableMatching {
 						if (!found)
 							continue;
 					}
-				} else if (Config.TINLA_C_ENABLED) {
+				} else if (Config.CTINLA_ENABLED) {
 					//TODO
 					found = true;
 
@@ -845,8 +846,8 @@ public abstract class DurableMatching {
 			
 			if (TiNLa)
 				outputPath+= "tinla(" + Config.TINLA_R + ")_";
-			else if (Config.TINLA_C_ENABLED)
-				outputPath+= "tinla_c(" + Config.TINLA_R + ")_";
+			else if (Config.CTINLA_ENABLED)
+				outputPath+= "tinla_c(" + Config.CTINLA_R + ")_";
 			else if (Config.TIPLA_ENABLED)
 				outputPath+= "tipla_";
 			else

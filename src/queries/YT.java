@@ -13,9 +13,9 @@ import system.Config;
 public class YT extends Query {
 	
 	public void run() throws Exception {
-		Config.sizeOfLabels = 10;
+		Config.SIZE_OF_LABELS = 10;
 		Config.PATH_DATASET = "/experiments/files/yt_graph";
-		Config.PATH_LABELS = "/experiments/files/yt_label_" + Config.sizeOfLabels;
+		Config.PATH_LABELS = "/experiments/files/yt_label_" + Config.SIZE_OF_LABELS;
 		Config.ISDIRECTED = true;
 		Config.MAXIMUM_INTERVAL = 37;
 		int numberOfChanges = 9;
