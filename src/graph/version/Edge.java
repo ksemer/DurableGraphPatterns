@@ -11,18 +11,18 @@ public class Edge {
 	// keeps the target node object
 	private Node trg_node;
 	
-	// keeps the edge lifetime
-	private BitSet lifetime;	
+	// keeps the edge lifespan
+	private BitSet lifespan;	
 	//=================================================================
 
 	/**
 	 * Constructor
 	 * @param trg_node
-	 * @param lifetime
+	 * @param lifespan
 	 */
-	public Edge(Node trg_node, BitSet lifetime) {
+	public Edge(Node trg_node, BitSet lifespan) {
 		this.trg_node = trg_node;
-		this.lifetime = lifetime;
+		this.lifespan = lifespan;
 	}
 	
 	/**
@@ -34,18 +34,18 @@ public class Edge {
 	}
 	
 	/**
-	 * Returns lifetime
+	 * Returns lifespan
 	 * @return
 	 */
 	public BitSet getLifetime() {
-		return lifetime;
+		return lifespan;
 	}
 	
 	/**
-	 * Update lifetime set t position to true
+	 * Update lifespan set t position to true
 	 * @param t
 	 */
 	public void updateLifetime(int t) {
-		lifetime.set(t);
+		lifespan.set(t);
 	}
 }

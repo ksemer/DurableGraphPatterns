@@ -14,8 +14,10 @@ public class MatchInfo {
 	//=====================================
 	// keeps duration of match
 	private int duration;
+	
 	// lifespan
 	private BitSet lifespan;
+	
 	// match pattern id --> node object
 	private Map<Integer, Set<Node>> match;
 	//=====================================

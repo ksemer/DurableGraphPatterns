@@ -285,7 +285,7 @@ public abstract class DurableMatching {
 			// check labels intersection
 			for (Entry<Integer, Set<Node>> entry : match.entrySet()) {
 				for (Node n : entry.getValue()) {
-					// intersect labels lifetime
+					// intersect labels lifespan
 					inter.and(n.getLabel(pg.getNode(entry.getKey()).getLabel()));
 
 					if (continuously) {
@@ -512,7 +512,7 @@ public abstract class DurableMatching {
 					
 					inter = (BitSet) labelLife.clone();
 	
-					// intersection between edge lifetime and interval I
+					// intersection between edge lifespan and interval I
 					inter.and(e.getLifetime());
 	
 					if (Config.LABELS_CHANGE)
@@ -547,7 +547,7 @@ public abstract class DurableMatching {
 					
 					inter = (BitSet) labelLife.clone();
 	
-					// intersection between edge lifetime and interval I
+					// intersection between edge lifespan and interval I
 					inter.and(e.getLifetime());
 	
 					if (Config.LABELS_CHANGE)
@@ -612,10 +612,10 @@ public abstract class DurableMatching {
 		pg.createLabelAdjacency();
 
 		boolean found;
-		BitSet lifetime;
+		BitSet lifespan;
 		int label, sc;
 		Set<Node> pnode_candidates, current_candidates;
-		Map<Integer, Set<Node>> rankingBasedOnlifetimeScore;
+		Map<Integer, Set<Node>> rankingBasedOnlifespanScore;
 		Node n;
 		
 		for (PatternNode pn : pg.getNodes()) {
@@ -627,13 +627,13 @@ public abstract class DurableMatching {
 			for (Iterator<Integer> it = iQ.stream().iterator(); it.hasNext();)
 				pnode_candidates.addAll(lvg.getTiLaNodes(it.next(), label));
 
-			rankingBasedOnlifetimeScore = Rank.get(pn.getID());
+			rankingBasedOnlifespanScore = Rank.get(pn.getID());
 
 			for (Iterator<Node> it = pnode_candidates.iterator(); it.hasNext();) {
 				n = it.next();
 				
-				lifetime = (BitSet) iQ.clone();
-				lifetime.and(n.getLabel(label));
+				lifespan = (BitSet) iQ.clone();
+				lifespan.and(n.getLabel(label));
 
 				// if TiNLa is enabled
 				if (TiNLa) {
@@ -646,11 +646,11 @@ public abstract class DurableMatching {
 							found = false;
 							it.remove();
 							break;
-						} else { // otherwise get the lifetime and intersect
-							lifetime.and(n.getTiNLa(0, l));
+						} else { // otherwise get the lifespan and intersect
+							lifespan.and(n.getTiNLa(0, l));
 
-							// check if the neighborhood lifetime intersection is not empty
-							if (lifetime.isEmpty()) {
+							// check if the neighborhood lifespan intersection is not empty
+							if (lifespan.isEmpty()) {
 								found = false;
 								it.remove();
 								break;
@@ -669,11 +669,11 @@ public abstract class DurableMatching {
 								found = false;
 								it.remove();
 								break;
-							} else { // otherwise get the lifetime and intersect
-								lifetime.and(n.getTiNLa(1, l));
+							} else { // otherwise get the lifespan and intersect
+								lifespan.and(n.getTiNLa(1, l));
 
-								// check if the neighborhood lifetime intersection is not empty
-								if (lifetime.isEmpty()) {
+								// check if the neighborhood lifespan intersection is not empty
+								if (lifespan.isEmpty()) {
 									found = false;
 									it.remove();
 									break;
@@ -695,17 +695,17 @@ public abstract class DurableMatching {
 							found = false;
 							it.remove();
 							break;
-						} else { // otherwise get the lifetime and intersect
-							lifetime.and(n.getTiNLa_C(0, l.getKey()));
+						} else { // otherwise get the lifespan and intersect
+							lifespan.and(n.getTiNLa_C(0, l.getKey()));
 
-							// check if the neighborhood lifetime intersection is not empty
-							if (lifetime.isEmpty()) {
+							// check if the neighborhood lifespan intersection is not empty
+							if (lifespan.isEmpty()) {
 								found = false;
 								it.remove();
 								break;
 							} else {
-								 lifetime.and(n.getTiNLa_C(0, l.getKey(), l.getValue(), lifetime));
-								 if (lifetime.isEmpty()) {
+								 lifespan.and(n.getTiNLa_C(0, l.getKey(), l.getValue(), lifespan));
+								 if (lifespan.isEmpty()) {
 									 found = false;
 									 it.remove();
 									 break;
@@ -727,17 +727,17 @@ public abstract class DurableMatching {
 								found = false;
 								it.remove();
 								break;
-							} else { // otherwise get the lifetime and intersect
-								lifetime.and(n.getTiNLa_C(1, l.getKey()));
+							} else { // otherwise get the lifespan and intersect
+								lifespan.and(n.getTiNLa_C(1, l.getKey()));
 
-								// check if the neighborhood lifetime intersection is not empty
-								if (lifetime.isEmpty()) {
+								// check if the neighborhood lifespan intersection is not empty
+								if (lifespan.isEmpty()) {
 									found = false;
 									it.remove();
 									break;
 								} else {
-									 lifetime.and(n.getTiNLa_C(1, l.getKey(), l.getValue(), lifetime));
-									 if (lifetime.isEmpty()) {
+									 lifespan.and(n.getTiNLa_C(1, l.getKey(), l.getValue(), lifespan));
+									 if (lifespan.isEmpty()) {
 										 found = false;
 										 it.remove();
 										 break;
@@ -748,18 +748,18 @@ public abstract class DurableMatching {
 						if (!found)
 							continue;
 					}		
-				} else if (lifetime.isEmpty()) { // check if Node n lifetime does not contain any bit			
+				} else if (lifespan.isEmpty()) { // check if Node n lifespan does not contain any bit			
 					it.remove();
 					continue;
 				}
 					
 				// remove node from candidates
-				if ((sc = lifetime.cardinality()) == 1)
+				if ((sc = lifespan.cardinality()) == 1)
 					it.remove();
 				else {	
-					if ((current_candidates = rankingBasedOnlifetimeScore.get(sc)) == null) {
+					if ((current_candidates = rankingBasedOnlifespanScore.get(sc)) == null) {
 						current_candidates = new HashSet<>();
-						rankingBasedOnlifetimeScore.put(sc, current_candidates);
+						rankingBasedOnlifespanScore.put(sc, current_candidates);
 					}
 					// add candidate node
 					current_candidates.add(n);

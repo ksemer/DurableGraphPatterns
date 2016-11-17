@@ -137,7 +137,7 @@ public class TimePathIndex {
 			// for all neighbors
 			for (Edge e : info.n.getAdjacency()) {
 
-				// if we are in src node we take as lifetime the edge's lifetime
+				// if we are in src node we take as lifespan the edge's lifespan
 				if (info.father == null)
 					toBeVisited.add(new n_info(e.getTarget(), info, (BitSet) e.getLifetime().clone(), info.depth + 1));
 				else if (!info.father.n.equals(e.getTarget())) {
@@ -161,7 +161,7 @@ public class TimePathIndex {
 	 */
 	private void rec_labelComp(List<Node> path, Node src, BitSet life, String label, int depth) {
 		Node n = path.get(depth);
-		BitSet lifetime;
+		BitSet lifespan;
 
 		for (int l = 0; l < Config.SIZE_OF_LABELS; l++) {
 
@@ -169,19 +169,19 @@ public class TimePathIndex {
 			if (n.getLabel(l) == null)
 				continue;
 
-			lifetime = (BitSet) life.clone();
-			lifetime.and(n.getLabel(l));
+			lifespan = (BitSet) life.clone();
+			lifespan.and(n.getLabel(l));
 
-			if (!lifetime.isEmpty()) {
+			if (!lifespan.isEmpty()) {
 
 				if (depth + 1 < path.size())
-					rec_labelComp(path, src, lifetime, label + "|" + l, depth + 1);
+					rec_labelComp(path, src, lifespan, label + "|" + l, depth + 1);
 				else {
 					// i is the next label in path
 					// we use integers to denote labels
 					String Path = label + "|" + l;
 
-					for (Iterator<Integer> it = lifetime.stream().iterator(); it.hasNext();) {
+					for (Iterator<Integer> it = lifespan.stream().iterator(); it.hasNext();) {
 						int t = it.next();
 
 						if ((set = timePathIndexWT.get(t).get(Path)) == null) {

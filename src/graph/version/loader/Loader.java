@@ -31,7 +31,7 @@ public abstract class Loader {
 	public static void createNeighborIndex(Graph lvg) {
 		int R = -1, label;
 		Node trg;
-		BitSet lifetime;
+		BitSet lifespan;
 
 		if (Config.TINLA_ENABLED) {
 			System.out.println("TiNLa(" + Config.TINLA_R + ") construction is starting...");
@@ -66,11 +66,11 @@ public abstract class Loader {
 						// label
 						label = entry.getKey();
 
-						// lifetime of the label
-						lifetime = entry.getValue();
+						// lifespan of the label
+						lifespan = entry.getValue();
 
 						// for each active time instant update TiNLa index
-						for (Iterator<Integer> it = lifetime.stream().iterator(); it.hasNext();) {
+						for (Iterator<Integer> it = lifespan.stream().iterator(); it.hasNext();) {
 							int t = it.next();
 
 							if (Config.TINLA_ENABLED)

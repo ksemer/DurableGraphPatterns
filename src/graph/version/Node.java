@@ -68,7 +68,7 @@ public class Node {
 	}
 
 	/**
-	 * Return label's lifetime
+	 * Return label's lifespan
 	 * 
 	 * @param label
 	 * @return
@@ -87,20 +87,20 @@ public class Node {
 	}
 
 	/**
-	 * Update label lifetime
+	 * Update label lifespan
 	 * 
 	 * @param label
 	 * @param t
 	 */
 	public void updateLabelLifetime(int label, int t) {
-		BitSet lifetime;
+		BitSet lifespan;
 
-		if ((lifetime = labels.get(label)) == null) {
-			lifetime = new BitSet(Config.MAXIMUM_INTERVAL);
-			labels.put(label, lifetime);
+		if ((lifespan = labels.get(label)) == null) {
+			lifespan = new BitSet(Config.MAXIMUM_INTERVAL);
+			labels.put(label, lifespan);
 		}
 
-		lifetime.set(t);
+		lifespan.set(t);
 	}
 
 	/**
@@ -118,20 +118,20 @@ public class Node {
 	/**
 	 * Given a label, the radius and the c value Return a lifespan that denotes
 	 * that there are at least c neighborhoods with the given label in the given
-	 * lifetime
+	 * lifespan
 	 * 
 	 * @param r
 	 * @param label
 	 * @param c
-	 * @param lifetime
+	 * @param lifespan
 	 * @return
 	 */
-	public BitSet getTiNLa_C(int r, int label, int c, BitSet lifetime) {
+	public BitSet getTiNLa_C(int r, int label, int c, BitSet lifespan) {
 		int t;
-		BitSet life = (BitSet) lifetime.clone();
+		BitSet life = (BitSet) lifespan.clone();
 		Map<Integer, Integer> index = CTiNLa.get(r).getCounter(label);
 
-		for (Iterator<Integer> it = lifetime.stream().iterator(); it.hasNext();) {
+		for (Iterator<Integer> it = lifespan.stream().iterator(); it.hasNext();) {
 			t = it.next();
 
 			// if node doesn't contaiin at least c neighbors then disable the t
@@ -162,14 +162,14 @@ public class Node {
 	 * @param t
 	 */
 	public void updateTiNLa(int r, int label, int t) {
-		BitSet lifetime;
+		BitSet lifespan;
 
-		if ((lifetime = TiNLa.get(r).get(label)) == null) {
-			lifetime = new BitSet(Config.MAXIMUM_INTERVAL);
-			TiNLa.get(r).put(label, lifetime);
+		if ((lifespan = TiNLa.get(r).get(label)) == null) {
+			lifespan = new BitSet(Config.MAXIMUM_INTERVAL);
+			TiNLa.get(r).put(label, lifespan);
 		}
 
-		lifetime.set(t);
+		lifespan.set(t);
 	}
 
 	/**

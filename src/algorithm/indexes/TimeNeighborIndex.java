@@ -13,7 +13,7 @@ import system.Config;
  *
  */
 public class TimeNeighborIndex {
-	// label -> lifetime
+	// label -> lifespan
 	private Map<Integer, BitSet> TiNLa;
 
 	// label -> [t--> c]
@@ -55,16 +55,16 @@ public class TimeNeighborIndex {
 	 */
 	public void update(int label, int t) {
 		Integer tmpC;
-		BitSet lifetime;
+		BitSet lifespan;
 		Map<Integer, Integer> tmpCounter;
 
 		if (Config.TINLA_ENABLED) {
-			if ((lifetime = TiNLa.get(label)) == null) {
-				lifetime = new BitSet(Config.MAXIMUM_INTERVAL);
-				TiNLa.put(label, lifetime);
+			if ((lifespan = TiNLa.get(label)) == null) {
+				lifespan = new BitSet(Config.MAXIMUM_INTERVAL);
+				TiNLa.put(label, lifespan);
 			}
 
-			lifetime.set(t);
+			lifespan.set(t);
 		} else if (Config.CTINLA_ENABLED) {
 			if ((tmpCounter = CTiNLa.get(label)) == null) {
 				tmpCounter = new HashMap<>();

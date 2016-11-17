@@ -15,7 +15,7 @@ public final class Config {
 	// dataset direction
 	public static boolean ISDIRECTED;
 	
-	// maximum interval of graph lifetime
+	// maximum interval of graph lifespan
 	public static int MAXIMUM_INTERVAL;
 	
 	public static int SIZE_OF_LABELS;
