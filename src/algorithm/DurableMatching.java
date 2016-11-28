@@ -92,8 +92,6 @@ public class DurableMatching {
 		Map<Integer, Set<Node>> initC;
 		start = System.currentTimeMillis();
 
-		System.out.println("DurableMatching is Running...");
-
 		// to start counting the time
 		Main.TIME = System.currentTimeMillis();
 
@@ -164,11 +162,8 @@ public class DurableMatching {
 				threshold = getMinMaxBasedThreshold();
 		}
 
-		System.out.println("sizeOfRank: " + sizeOfRank);
-		System.out.println("Total Recursions: " + totalRecursions);
-
-		// print matches
-		printTopMatches();
+		// write matches
+		writeTopMatches();
 	}
 
 	/**
@@ -242,15 +237,19 @@ public class DurableMatching {
 		totalRecursions++;
 		tempRec++;
 
-		if (System.currentTimeMillis() > (start + 3600000))
+		if (System.currentTimeMillis() > (start + Config.TIME_LIMIT)) {
 			throw new Exception("Reach time limit");
-		// max matches limit can be used only in the below strategies
-		// zero strategy may find more matches than the limit that are not
-		// the best solution at the current step
-		else if (topMatches.size() == Config.MAX_MATCHES
-				&& (rankingStrategy == Config.MAX_RANKING || rankingStrategy == Config.HALFWAY_RANKING))
+		} else if (topMatches.size() == Config.MAX_MATCHES
+				&& (rankingStrategy == Config.MAX_RANKING || rankingStrategy == Config.HALFWAY_RANKING)) {
+			// max matches limit can be used only in the below strategies
+			// zero strategy may find more matches than the limit that are not
+			// the best solution at the current step
 			throw new Exception("Reach maxMatches");
-		else if (depth == pg.size() && c.size() != 0) {
+		} else if (topMatches.size() == Config.MAX_MATCHES && rankingStrategy == Config.ZERO_RANKING) {
+			// if zero ranking then when topMatches is reached, then do not
+			// store any other match
+			return;
+		} else if (depth == pg.size() && c.size() != 0) {
 			computeMatchesTime(c);
 		} else if (!c.isEmpty()) {
 
@@ -283,13 +282,17 @@ public class DurableMatching {
 		Edge e;
 
 		if (Config.LABEL_CHANGE) {
+
 			// check labels intersection
 			for (Entry<Integer, Set<Node>> entry : match.entrySet()) {
+
 				for (Node n : entry.getValue()) {
+
 					// intersect labels lifespan
 					inter.and(n.getLabel(pg.getNode(entry.getKey()).getLabel()));
 
 					if (continuously) {
+
 						BitSet shifted = (BitSet) inter.clone();
 						int count = 0;
 
@@ -301,10 +304,10 @@ public class DurableMatching {
 						if (count < threshold)
 							return;
 
-					} else
-					// there intersection is less than algoTerm or topScore
-					if (inter.cardinality() < threshold)
+					} else if (inter.cardinality() < threshold) {
+						// intersection is less than algoTerm or topScore
 						return;
+					}
 				}
 			}
 		}
@@ -321,6 +324,7 @@ public class DurableMatching {
 					for (Node c : match.get(child.getID())) {
 
 						if ((e = n.getEdge(c)) != null) {
+
 							inter.and(e.getLifetime());
 
 							if (continuously) {
@@ -335,10 +339,11 @@ public class DurableMatching {
 								if (count < threshold)
 									return;
 
-							} else // check if the cardinality is less than
-									// topScore or algoTerm
-							if (inter.cardinality() < threshold)
+							} else if (inter.cardinality() < threshold) {
+								// check if the cardinality is less than
+								// topScore or algoTerm
 								return;
+							}
 						}
 					}
 				}
@@ -448,7 +453,7 @@ public class DurableMatching {
 	 * @param c
 	 * @return
 	 */
-	public Map<Integer, Set<Node>> refine(Map<Integer, Set<Node>> c) {
+	private Map<Integer, Set<Node>> refine(Map<Integer, Set<Node>> c) {
 		Node phiNode;
 		List<Node> phiTemp;
 		Set<Node> c_;
@@ -486,7 +491,7 @@ public class DurableMatching {
 	 * @param chil
 	 * @return
 	 */
-	public List<Node> timeJoin(Node n, PatternNode p, PatternNode chil, Map<Integer, Set<Node>> phi) {
+	private List<Node> timeJoin(Node n, PatternNode p, PatternNode chil, Map<Integer, Set<Node>> phi) {
 		List<Node> intersection = new ArrayList<Node>();
 		BitSet inter, labelLife = (BitSet) iQ.clone();
 
@@ -546,6 +551,7 @@ public class DurableMatching {
 			Edge e;
 
 			for (Node ngb : phi.get(chil.getID())) {
+
 				// if n has neighbor ngb
 				if ((e = n.getEdge(ngb)) != null) {
 
@@ -569,11 +575,11 @@ public class DurableMatching {
 						if (count < threshold)
 							continue;
 
-					} else // check if target is pruned or it is not alive
-							// during
-							// interval
-					if (inter.cardinality() < threshold)
+					} else if (inter.cardinality() < threshold) {
+						// check if target is pruned or it is not alive
+						// during interval
 						continue;
+					}
 
 					intersection.add(ngb);
 				}
@@ -584,9 +590,9 @@ public class DurableMatching {
 	}
 
 	/**
-	 * Check if node u is contained in at least one c
+	 * Check if node u is contained in at least one candidate set
 	 *
-	 * @param c
+	 * @param phi
 	 * @param u
 	 * @param depth
 	 * @return
@@ -719,7 +725,8 @@ public class DurableMatching {
 					continue;
 				}
 
-				// remove node from candidates since with score 1 it is not durable
+				// remove node from candidates since with score 1 it is not
+				// durable
 				if ((sc = lifespan.cardinality()) == 1)
 					it.remove();
 				else {
@@ -831,11 +838,11 @@ public class DurableMatching {
 	}
 
 	/**
-	 * Print topK Matches
+	 * Write Matches
 	 * 
 	 * @throws IOException
 	 */
-	private void printTopMatches() throws IOException {
+	private void writeTopMatches() throws IOException {
 		totalTime = (System.currentTimeMillis() - Main.TIME);
 
 		// stores the result
@@ -853,9 +860,11 @@ public class DurableMatching {
 					shifted.and(shifted.get(1, shifted.length()));
 					count++;
 				}
+
 				result += "Duration : " + count + "\n";
 			} else
 				result += "Duration : " + mI.getLifespan().cardinality() + "\n";
+
 			result += "Lifetime : " + mI.getLifespan() + "\n";
 			result += "------ Nodes ------\n";
 
@@ -868,28 +877,35 @@ public class DurableMatching {
 					result += "g_id: " + n.getID() + "\n";
 			}
 
-			// print the edges
-			for (PatternNode pn : pg.getNodes())
-				for (PatternNode child : pn.getAdjacency())
-					for (Node n : mI.getMatch().get(pn.getID()))
-						for (Edge e : n.getAdjacency())
-							if (mI.getMatch().get(child.getID()).contains(e.getTarget())) {
+			// write the edges
+			for (PatternNode pn : pg.getNodes()) {
+
+				// for each adjacent node
+				for (PatternNode trg : pn.getAdjacency()) {
+
+					for (Node n : mI.getMatch().get(pn.getID())) {
+						for (Edge e : n.getAdjacency()) {
+							if (mI.getMatch().get(trg.getID()).contains(e.getTarget())) {
 
 								if (Config.PATH_DATASET.contains("dblp"))
 									result += LoaderDBLP.getAuthors().get(n.getID()) + ": ";
 
-								result += "(" + pn.getID() + ") ---> (" + child.getID() + ")";
+								result += "(" + pn.getID() + ") ---> (" + trg.getID() + ")";
 
 								if (Config.PATH_DATASET.contains("dblp"))
 									result += " " + LoaderDBLP.getAuthors().get(e.getTarget().getID());
 
 								result += "\n";
 							}
+						}
+					}
+				}
+			}
 
 			result += "-------------------\n";
 		}
 
-		String outputPath = Config.PATH_OUTPUT + "pq=" + pg.getID();
+		String outputPath = Config.PATH_OUTPUT + "pq=" + pg.getID() + "_";
 
 		if (continuously)
 			outputPath += "cont_";
@@ -897,51 +913,26 @@ public class DurableMatching {
 		if (Config.TINLA_ENABLED)
 			outputPath += "tinla(" + Config.TINLA_R + ")_";
 		else if (Config.CTINLA_ENABLED)
-			outputPath += "tinla_c(" + Config.CTINLA_R + ")_";
+			outputPath += "ctinla(" + Config.CTINLA_R + ")_";
 		else if (Config.TIPLA_ENABLED)
 			outputPath += "tipla_";
 		else
 			outputPath += "tila_";
 
 		if (rankingStrategy == Config.HALFWAY_RANKING)
-			outputPath += "t=half";
+			outputPath += "r=h";
 		else if (rankingStrategy == Config.MAX_RANKING)
-			outputPath += "t=max";
+			outputPath += "r=m";
 		else if (rankingStrategy == Config.ZERO_RANKING)
-			outputPath += "t=zero";
+			outputPath += "r=z";
 
 		FileWriter w = new FileWriter(outputPath);
 		w.write("Total matches: " + topMatches.size() + "\n");
+		w.write("sizeOfRank: " + sizeOfRank + "\n");
+		w.write("Total Recursions: " + totalRecursions + "\n");
 		w.write("Recursive Time: " + totalTime + " (ms)\n");
 		w.write(result);
 		w.close();
-	}
-
-	/**
-	 * Return the durable matchings
-	 * 
-	 * @return
-	 */
-	public Set<MatchInfo> getMatches() {
-		return topMatches;
-	}
-
-	/**
-	 * Returns the durable patterns duration
-	 * 
-	 * @return
-	 */
-	public int getMaxDuration() {
-		return maxDuration;
-	}
-
-	/**
-	 * Return algorithm execution time
-	 * 
-	 * @return
-	 */
-	public long getTotalExecutionTime() {
-		return totalTime;
 	}
 
 	/**

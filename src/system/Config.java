@@ -74,6 +74,10 @@ public final class Config {
 
 	// maximum matches that we want to get
 	public static int MAX_MATCHES;
+	
+	public static int TIME_LIMIT;
+	
+	public static int K;
 
 	// nodes' labels change
 	public static boolean LABEL_CHANGE;
@@ -124,6 +128,8 @@ public final class Config {
 			CTINLA_ENABLED = Boolean.parseBoolean(Settings.getProperty("CTiNLa", "false"));
 			TIPLA_ENABLED = Boolean.parseBoolean(Settings.getProperty("TiPLa", "false"));
 			MAX_MATCHES = Integer.parseInt(Settings.getProperty("MaxMatches", "1"));
+			K = Integer.parseInt(Settings.getProperty("k", "1"));
+			TIME_LIMIT = Integer.parseInt(Settings.getProperty("TimeLimit", "3600"));
 			MAXIMUM_INTERVAL = Integer.parseInt(Settings.getProperty("MaximumInterval", "-1"));
 			TINLA_R = Integer.parseInt(Settings.getProperty("TiNLa_r", "1"));
 			CTINLA_R = Integer.parseInt(Settings.getProperty("CTiNLa_r", "1"));

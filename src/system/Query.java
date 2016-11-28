@@ -24,10 +24,6 @@ public class Query {
 	// =================================================================
 	private Graph lvg;
 	private BitSet iQ;
-
-	// used when the results are printed to know the label and query size
-	public static int label;
-	public static int size;
 	// =================================================================
 
 	/**
@@ -126,12 +122,18 @@ public class Query {
 			}
 		}
 		br.close();
-
-		// FIXME gia to yt
-		// if (Config.RUN_RANDOM)
-		// runRandom();
+		
+		executor.shutdown();
 	}
 	
+	/**
+	 * Set callable Durable query execution
+	 * @param lvg
+	 * @param pg
+	 * @param iQ
+	 * @param rankingStrategy
+	 * @return
+	 */
 	private Callable<?> setCallableDurQ(Graph lvg, PatternGraph pg, BitSet iQ, int rankingStrategy) {
 		Callable<?> c = () -> {
 			new DurableMatching(lvg, pg, iQ, Config.CONTIGUOUS_MATCHES, rankingStrategy);
@@ -140,10 +142,17 @@ public class Query {
 		return c;
 	}
 	
+	/**
+	 * Set callable Topk Durable query execution
+	 * @param lvg
+	 * @param pg
+	 * @param iQ
+	 * @param rankingStrategy
+	 * @return
+	 */
 	private Callable<?> setCallableTopkQ(Graph lvg, PatternGraph pg, BitSet iQ, int rankingStrategy) {
 		Callable<?> c = () -> {
-			//TODO
-			new DurableTopkMatching(lvg, pg, iQ, Config.CONTIGUOUS_MATCHES, rankingStrategy);
+			new DurableTopkMatching(lvg, pg, iQ, Config.CONTIGUOUS_MATCHES, Config.K, rankingStrategy);
 			return true;
 		};
 		return c;
