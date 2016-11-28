@@ -1,8 +1,6 @@
 # DurablePatterns_ICDE16
 Algorithm for handling durable pattern queries - Durable Graph Pattern Queries on Historical Graphs ICDE16
 
-This is our first version.
+Revision 8 is the final version of DurablePatterns_ICDE algorithm
 
-Soon a new version supporting concurrency will be added.
-
-Better documentation will be added soon.
+After revision 8, support for topk durable pattern queries will be added
