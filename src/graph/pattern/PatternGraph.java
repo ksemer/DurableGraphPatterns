@@ -14,13 +14,16 @@ import system.Config;
  */
 public class PatternGraph {
 	// =================================================================
+	private int id;
 	private List<PatternNode> nodes;
 	// =================================================================
 
 	/**
 	 * Constructor
+	 * @param id
 	 */
-	public PatternGraph() {
+	public PatternGraph(int id) {
+		this.id = id;
 		nodes = new ArrayList<PatternNode>();
 	}
 
@@ -70,6 +73,14 @@ public class PatternGraph {
 	 */
 	public int size() {
 		return nodes.size();
+	}
+	
+	/**
+	 * Return pattern's graph id
+	 * @return
+	 */
+	public int getID() {
+		return id;
 	}
 
 	/**

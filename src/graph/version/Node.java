@@ -1,5 +1,6 @@
 package graph.version;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
@@ -16,7 +17,10 @@ import system.Config;
  * 
  * @author ksemer
  */
-public class Node {
+public class Node implements Serializable {
+
+	private static final long serialVersionUID = 1L;
+
 	// =================================================================
 	private int id;
 	private Map<Integer, BitSet> labels;

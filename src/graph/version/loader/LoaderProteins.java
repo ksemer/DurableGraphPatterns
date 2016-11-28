@@ -18,7 +18,7 @@ import graph.version.Node;
  * 
  * @author ksemer
  */
-public class LoaderProteins extends Loader {
+public class LoaderProteins {
 	// =================================================================
 	private Map<String, Integer> labels = new HashMap<>();
 	// =================================================================
@@ -87,21 +87,23 @@ public class LoaderProteins extends Loader {
 				// src -> trg time label
 				lvg.addEdge(n1, n2, time);
 
-				// trg -> src time label
-				lvg.addEdge(n2, n1, time);
+				if (!Config.ISDIRECTED)
+					// trg -> src time label
+					lvg.addEdge(n2, n1, time);
 			}
 		}
 		br.close();
 
-		System.out.println("TiLa time: " + (System.currentTimeMillis() - time) / 1000);
+		Config.SIZE_OF_LABELS = labels.size();
+
+		System.out.println("TiLa time: " + (System.currentTimeMillis() - time) / 1000 + " (sec)");
 
 		if (Config.TINLA_ENABLED || Config.CTINLA_ENABLED) {
-			Runtime runtime = null;
+			Runtime runtime = Runtime.getRuntime();
 			long memory;
 
 			// For displaying memory usage
 			if (Config.SHOW_MEMORY) {
-				runtime = Runtime.getRuntime();
 
 				// Run the garbage collector
 				runtime.gc();
@@ -110,16 +112,18 @@ public class LoaderProteins extends Loader {
 				memory = runtime.totalMemory() - runtime.freeMemory();
 
 				if (Config.TINLA_ENABLED)
-					System.out.println("Used memory is megabytes without TiNLa: " + Main.bytesToMegabytes(memory));
+					System.out.println("Used memory is megabytes without (TiNLa): " + Main.bytesToMegabytes(memory));
 				else if (Config.CTINLA_ENABLED)
-					System.out.println("Used memory is megabytes without CTiNLa: " + Main.bytesToMegabytes(memory));
+					System.out.println("Used memory is megabytes without (CTiNLa): " + Main.bytesToMegabytes(memory));
 			}
 
-			createNeighborIndex(lvg);
+			lvg.createTimeNeighborIndex();
 
 			if (Config.SHOW_MEMORY) {
+
 				// Run the garbage collector
 				runtime.gc();
+
 				// Calculate the used memory
 				memory = runtime.totalMemory() - runtime.freeMemory();
 
@@ -142,10 +146,5 @@ public class LoaderProteins extends Loader {
 	 */
 	public Map<String, Integer> getLabels() {
 		return this.labels;
-	}
-
-	@Override
-	protected void loadAttributes(Graph lvg) throws IOException {
-		// implemented in LoadDataset() method
 	}
 }

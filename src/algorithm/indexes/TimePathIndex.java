@@ -1,6 +1,7 @@
 package algorithm.indexes;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -23,7 +24,10 @@ import system.Config;
  * 
  * @author ksemer
  */
-public class TimePathIndex {
+public class TimePathIndex implements Serializable {
+
+	private static final long serialVersionUID = 1L;
+
 	// ====================================================================
 	private Map<Integer, Map<String, Set<Node>>> timePathIndexWT;
 	private int max_depth;

@@ -1,5 +1,6 @@
 package algorithm.indexes;
 
+import java.io.Serializable;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,7 +13,10 @@ import system.Config;
  * @author ksemer
  *
  */
-public class TimeNeighborIndex {
+public class TimeNeighborIndex implements Serializable {
+
+	private static final long serialVersionUID = 1L;
+
 	// label -> lifespan
 	private Map<Integer, BitSet> TiNLa;
 
@@ -23,8 +27,11 @@ public class TimeNeighborIndex {
 	 * Constructor
 	 */
 	public TimeNeighborIndex() {
-		TiNLa = new HashMap<>();
-		CTiNLa = new HashMap<>();
+		if (Config.TINLA_ENABLED)
+			TiNLa = new HashMap<>();
+
+		if (Config.CTINLA_ENABLED)
+			CTiNLa = new HashMap<>();
 	}
 
 	/**

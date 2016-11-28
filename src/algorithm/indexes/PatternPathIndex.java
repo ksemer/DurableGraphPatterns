@@ -23,8 +23,10 @@ import system.Config;
 public class PatternPathIndex {
 	// ===============================================
 	private Map<String, Set<PatternNode>> pathIndexWT;
+	
 	// temp variable
 	private Map<Integer, boolean[]> hasBeenVisited;
+	
 	private int max_depth;
 
 	// help variables

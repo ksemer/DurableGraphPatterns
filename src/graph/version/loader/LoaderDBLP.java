@@ -19,7 +19,7 @@ import graph.version.Node;
  * 
  * @author ksemer
  */
-public class LoaderDBLP extends Loader {
+public class LoaderDBLP {
 	// =================================================================
 	private final int BEGINNER = 2; // label = 0
 	private final int JUNIOR = 5; // label = 1
@@ -59,9 +59,10 @@ public class LoaderDBLP extends Loader {
 
 			// src -> trg time label
 			lvg.addEdge(n1_id, n2_id, time);
-
-			// src -> trg time label
-			lvg.addEdge(n2_id, n1_id, time);
+			
+			if (!Config.ISDIRECTED)
+				// src -> trg time label
+				lvg.addEdge(n2_id, n1_id, time);
 		}
 		br.close();
 
@@ -69,14 +70,13 @@ public class LoaderDBLP extends Loader {
 		loadAttributes(lvg);
 		loadNames(lvg.size());
 
+		long memory;
+		Runtime runtime = Runtime.getRuntime();
+
 		if (Config.TINLA_ENABLED || Config.CTINLA_ENABLED) {
-			Runtime runtime = null;
-			long memory;
 
 			// For displaying memory usage
 			if (Config.SHOW_MEMORY) {
-				runtime = Runtime.getRuntime();
-
 				// Run the garbage collector
 				runtime.gc();
 
@@ -84,16 +84,18 @@ public class LoaderDBLP extends Loader {
 				memory = runtime.totalMemory() - runtime.freeMemory();
 
 				if (Config.TINLA_ENABLED)
-					System.out.println("Used memory is megabytes without TiNLa: " + Main.bytesToMegabytes(memory));
+					System.out.println("Used memory is megabytes without (TiNLa): " + Main.bytesToMegabytes(memory));
 				else if (Config.CTINLA_ENABLED)
 					System.out.println("Used memory is megabytes without CTiNLa: " + Main.bytesToMegabytes(memory));
 			}
 
-			createNeighborIndex(lvg);
+			lvg.createTimeNeighborIndex();
 
 			if (Config.SHOW_MEMORY) {
+
 				// Run the garbage collector
 				runtime.gc();
+
 				// Calculate the used memory
 				memory = runtime.totalMemory() - runtime.freeMemory();
 
@@ -101,6 +103,30 @@ public class LoaderDBLP extends Loader {
 					System.out.println("Used memory is megabytes with (TiNLa): " + Main.bytesToMegabytes(memory));
 				else if (Config.CTINLA_ENABLED)
 					System.out.println("Used memory is megabytes with (CTiNLa): " + Main.bytesToMegabytes(memory));
+			}
+		} else if (Config.TIPLA_ENABLED) {
+
+			if (Config.SHOW_MEMORY) {
+				// Run the garbage collector
+				runtime.gc();
+
+				// Calculate the used memory
+				memory = runtime.totalMemory() - runtime.freeMemory();
+
+				System.out.println("Used memory is megabytes without (TiPLa): " + Main.bytesToMegabytes(memory));
+			}
+
+			lvg.createTiPLa();
+
+			if (Config.SHOW_MEMORY) {
+
+				// Run the garbage collector
+				runtime.gc();
+
+				// Calculate the used memory
+				memory = runtime.totalMemory() - runtime.freeMemory();
+
+				System.out.println("Used memory is megabytes with (TiPLa): " + Main.bytesToMegabytes(memory));
 			}
 		}
 
@@ -115,7 +141,7 @@ public class LoaderDBLP extends Loader {
 	 * @param lvg
 	 * @throws IOException
 	 */
-	protected void loadAttributes(Graph lvg) throws IOException {
+	private void loadAttributes(Graph lvg) throws IOException {
 		System.out.println("Loading labels...");
 
 		BufferedReader br = new BufferedReader(new FileReader(Config.PATH_LABELS));
@@ -162,7 +188,7 @@ public class LoaderDBLP extends Loader {
 			}
 		} else if (line.contains("Conferences_count")) {
 			Set<Integer> conferences = new HashSet<>();
-			
+
 			// attributes for conferences
 			while ((line = br.readLine()) != null) {
 				String[] token = line.split("\t");
@@ -179,7 +205,7 @@ public class LoaderDBLP extends Loader {
 
 				// get conference id
 				int conf = Integer.parseInt(node_conf[1]);
-				
+
 				conferences.add(conf);
 
 				// years that author published in conf
@@ -192,13 +218,13 @@ public class LoaderDBLP extends Loader {
 					lvg.udpateTiLa(value, conf, node);
 				}
 			}
-			
+
 			Config.SIZE_OF_LABELS = conferences.size();
 		}
 
 		br.close();
 
-		System.out.println("TiLa time: " + (System.currentTimeMillis() - time) / 1000);
+		System.out.println("TiLa time: " + (System.currentTimeMillis() - time) / 1000 + " (sec)");
 	}
 
 	/**
@@ -230,6 +256,14 @@ public class LoaderDBLP extends Loader {
 	 */
 	public static Map<Integer, String> getAuthors() {
 		return authorsNames;
+	}
+	
+	/**
+	 * Update auhorNames with object
+	 * @param object
+	 */
+	public static void setAuthors(Map<Integer, String> object) {
+		authorsNames = object;
 	}
 
 	/**
