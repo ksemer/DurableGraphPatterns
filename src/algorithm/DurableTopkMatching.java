@@ -15,6 +15,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
@@ -51,17 +52,14 @@ public class DurableTopkMatching {
 	private boolean continuously;
 
 	// stores the matches
-	private Set<MatchInfo> topMatches;
-
-	// keeps the max duration for the current matches
-	private int maxDuration;
+	private PriorityQueue<Match> topkMatches;
 
 	// total recursions
 	private int totalRecursions = 0;
 
 	// size of rank
 	private int sizeOfRank = 0;
-	
+
 	// k matches
 	private int k;
 
@@ -103,7 +101,7 @@ public class DurableTopkMatching {
 		// to start counting the time
 		Main.TIME = System.currentTimeMillis();
 
-		topMatches = new HashSet<MatchInfo>();
+		topkMatches = new PriorityQueue<Match>(11, new MatchComparator(false));
 		Rank = new HashMap<>();
 
 		if (Config.TIPLA_ENABLED)
@@ -145,7 +143,8 @@ public class DurableTopkMatching {
 					initC.get(pn_id).addAll(entry1.getValue());
 			}
 
-			System.out.print("Algoterm: " + threshold + "\tCan_size: " + initC.get(0).size());
+			if (rankingStrategy != Config.ZERO_RANKING)
+				System.out.print("Algoterm: " + threshold + "\tCan_size: " + initC.get(0).size());
 
 			sizeOfRank++;
 
@@ -160,14 +159,14 @@ public class DurableTopkMatching {
 			}
 
 			// matches found
-			if (topMatches.size() != 0)
+			if (topkMatches.size() == k)
 				break;
-
+			// TODO
 			// get new threshold
 			if (rankingStrategy == Config.HALFWAY_RANKING)
-				threshold = getBinaryBasedThreshold();
+				threshold = getHalfwayThreshold();
 			else if (rankingStrategy == Config.MAX_RANKING)
-				threshold = getMinMaxBasedThreshold();
+				threshold = getMaxThreshold();
 		}
 
 		// write matches
@@ -175,11 +174,11 @@ public class DurableTopkMatching {
 	}
 
 	/**
-	 * Compute the next threshold based on binary ranking
+	 * Compute the next threshold based on halfway ranking
 	 * 
 	 * @return
 	 */
-	private int getBinaryBasedThreshold() {
+	private int getHalfwayThreshold() {
 		int sc, oldT = threshold;
 		TreeMap<Integer, Set<Node>> ranking;
 
@@ -207,11 +206,11 @@ public class DurableTopkMatching {
 	}
 
 	/**
-	 * Get next threshold based on minMax ranking
+	 * Get next threshold based on max ranking
 	 * 
 	 * @return
 	 */
-	private int getMinMaxBasedThreshold() {
+	private int getMaxThreshold() {
 		int oldT = threshold, sc;
 		TreeMap<Integer, Set<Node>> ranking;
 
@@ -245,21 +244,17 @@ public class DurableTopkMatching {
 		totalRecursions++;
 		tempRec++;
 
-		if (System.currentTimeMillis() > (start + Config.TIME_LIMIT)) {
+		if (System.currentTimeMillis() > (start + Config.TIME_LIMIT * 1000)) {
 			throw new Exception("Reach time limit");
-		} else if (topMatches.size() == Config.MAX_MATCHES
+		} else if (topkMatches.size() == Config.MAX_MATCHES
 				&& (rankingStrategy == Config.MAX_RANKING || rankingStrategy == Config.HALFWAY_RANKING)) {
-			
-			//TODO max and halfway topk
-			
+
+			// TODO max and halfway topk
+
 			// max matches limit can be used only in the below strategies
 			// zero strategy may find more matches than the limit that are not
 			// the best solution at the current step
 			throw new Exception("Reach maxMatches");
-		} else if (topMatches.size() == Config.MAX_MATCHES && rankingStrategy == Config.ZERO_RANKING) {
-			// if zero ranking then when topMatches is reached, then do not
-			// store any other match
-			return;
 		} else if (depth == pg.size() && c.size() != 0) {
 			computeMatchesTime(c);
 		} else if (!c.isEmpty()) {
@@ -362,24 +357,28 @@ public class DurableTopkMatching {
 		}
 
 		// duration of match
-		int duration = inter.cardinality();
+		int duration = inter.cardinality(), minDuration;
 
-		// if duration equals to max duration
-		if (duration == maxDuration)
-			topMatches.add(new MatchInfo(duration, inter, match));
-		else if (duration > maxDuration) {
+		if (topkMatches.size() < k)
+			// add the match
+			topkMatches.offer(new Match(duration, inter, match));
+		else if (topkMatches.size() == k) {
 
-			// update the max duration
-			maxDuration = duration;
+			// if we have found k matches and the new match has higher duration
+			if (duration > (minDuration = topkMatches.peek().getDuration())) {
 
-			// update threshold
-			threshold = maxDuration;
+				// remove match with the min duration
+				topkMatches.remove();
 
-			// clean the old matches
-			topMatches.clear();
+				// add the match
+				topkMatches.offer(new Match(duration, inter, match));
+				threshold = topkMatches.peek().getDuration();
+			} else if (duration == minDuration) {
 
-			// add match
-			topMatches.add(new MatchInfo(duration, inter, match));
+				// set the threshold to look for matches with duration >=
+				// duration of min element in heap
+				threshold = duration + 1;
+			}
 		}
 	}
 
@@ -856,66 +855,6 @@ public class DurableTopkMatching {
 	private void writeTopMatches() throws IOException {
 		totalTime = (System.currentTimeMillis() - Main.TIME);
 
-		// stores the result
-		String result = "";
-
-		for (MatchInfo mI : topMatches) {
-
-			result += "------ Match ------\n";
-
-			if (continuously) {
-				BitSet shifted = (BitSet) mI.getLifespan().clone();
-				int count = 0;
-
-				while (!shifted.isEmpty()) {
-					shifted.and(shifted.get(1, shifted.length()));
-					count++;
-				}
-				
-				result += "Duration : " + count + "\n";
-			} else
-				result += "Duration : " + mI.getLifespan().cardinality() + "\n";
-			
-			result += "Lifetime : " + mI.getLifespan() + "\n";
-			result += "------ Nodes ------\n";
-
-			for (Entry<Integer, Set<Node>> mg : mI.getMatch().entrySet()) {
-				// pattern node id
-				result += "pg_id: " + mg.getKey() + "\n";
-
-				for (Node n : mg.getValue())
-					// graph node id
-					result += "g_id: " + n.getID() + "\n";
-			}
-
-			// write the edges
-			for (PatternNode pn : pg.getNodes()) {
-				
-				// for each adjacent node
-				for (PatternNode trg : pn.getAdjacency()) {
-					
-					for (Node n : mI.getMatch().get(pn.getID())) {
-						for (Edge e : n.getAdjacency()) {
-							if (mI.getMatch().get(trg.getID()).contains(e.getTarget())) {
-
-								if (Config.PATH_DATASET.contains("dblp"))
-									result += LoaderDBLP.getAuthors().get(n.getID()) + ": ";
-
-								result += "(" + pn.getID() + ") ---> (" + trg.getID() + ")";
-
-								if (Config.PATH_DATASET.contains("dblp"))
-									result += " " + LoaderDBLP.getAuthors().get(e.getTarget().getID());
-
-								result += "\n";
-							}
-						}
-					}
-				}
-			}
-
-			result += "-------------------\n";
-		}
-
 		String outputPath = Config.PATH_OUTPUT + "pq=" + pg.getID() + "_";
 
 		if (continuously)
@@ -938,10 +877,83 @@ public class DurableTopkMatching {
 			outputPath += "r=z";
 
 		FileWriter w = new FileWriter(outputPath);
-		w.write("Total matches: " + topMatches.size() + "\n");
+		w.write("Top-" + k + " matches\n");
+		w.write("Total matches: " + topkMatches.size() + "\n");
 		w.write("Recursive Time: " + totalTime + " (ms)\n");
 		w.write("sizeOfRank: " + sizeOfRank + "\n");
 		w.write("Total Recursions: " + totalRecursions + "\n");
+		w.write("-------------------\n");
+
+		// stores the result
+		String result = "";
+		BitSet shifted;
+		int count;
+
+		// reverse minHeap to maxHeap in order to ouput from high to low
+		PriorityQueue<Match> topkMatchesR = new PriorityQueue<Match>(11, new MatchComparator(true));
+
+		while (!topkMatches.isEmpty())
+			topkMatchesR.offer(topkMatches.poll());
+
+		while (!topkMatchesR.isEmpty()) {
+			Match mI = topkMatchesR.poll();
+
+			result += "------ Match ------\n";
+
+			if (continuously) {
+				shifted = (BitSet) mI.getLifespan().clone();
+				count = 0;
+
+				while (!shifted.isEmpty()) {
+					shifted.and(shifted.get(1, shifted.length()));
+					count++;
+				}
+
+				result += "Duration : " + count + "\n";
+			} else
+				result += "Duration : " + mI.getLifespan().cardinality() + "\n";
+
+			result += "Lifetime : " + mI.getLifespan() + "\n";
+			result += "------ Nodes ------\n";
+
+			for (Entry<Integer, Set<Node>> mg : mI.getMatch().entrySet()) {
+				// pattern node id
+				result += "pg_id: " + mg.getKey() + "\n";
+
+				for (Node n : mg.getValue())
+					// graph node id
+					result += "g_id: " + n.getID() + "\n";
+			}
+
+			// write the edges
+			for (PatternNode pn : pg.getNodes()) {
+
+				// for each adjacent node
+				for (PatternNode trg : pn.getAdjacency()) {
+
+					for (Node n : mI.getMatch().get(pn.getID())) {
+
+						for (Edge e : n.getAdjacency()) {
+
+							if (mI.getMatch().get(trg.getID()).contains(e.getTarget())) {
+
+								if (Config.PATH_DATASET.contains("dblp"))
+									result += LoaderDBLP.getAuthors().get(n.getID()) + ": ";
+
+								result += "(" + pn.getID() + ") ---> (" + trg.getID() + ")";
+
+								if (Config.PATH_DATASET.contains("dblp"))
+									result += " " + LoaderDBLP.getAuthors().get(e.getTarget().getID());
+
+								result += "\n";
+							}
+						}
+					}
+				}
+			}
+
+			result += "-------------------\n";
+		}
 		w.write(result);
 		w.close();
 	}

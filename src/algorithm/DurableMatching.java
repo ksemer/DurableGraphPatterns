@@ -49,7 +49,7 @@ public class DurableMatching {
 	private boolean continuously;
 
 	// stores the matches
-	private Set<MatchInfo> topMatches;
+	private Set<Match> topMatches;
 
 	// keeps the max duration for the current matches
 	private int maxDuration;
@@ -95,7 +95,7 @@ public class DurableMatching {
 		// to start counting the time
 		Main.TIME = System.currentTimeMillis();
 
-		topMatches = new HashSet<MatchInfo>();
+		topMatches = new HashSet<Match>();
 		Rank = new HashMap<>();
 
 		if (Config.TIPLA_ENABLED)
@@ -237,7 +237,7 @@ public class DurableMatching {
 		totalRecursions++;
 		tempRec++;
 
-		if (System.currentTimeMillis() > (start + Config.TIME_LIMIT)) {
+		if (System.currentTimeMillis() > (start + Config.TIME_LIMIT * 1000)) {
 			throw new Exception("Reach time limit");
 		} else if (topMatches.size() == Config.MAX_MATCHES
 				&& (rankingStrategy == Config.MAX_RANKING || rankingStrategy == Config.HALFWAY_RANKING)) {
@@ -245,11 +245,7 @@ public class DurableMatching {
 			// zero strategy may find more matches than the limit that are not
 			// the best solution at the current step
 			throw new Exception("Reach maxMatches");
-		} else if (topMatches.size() == Config.MAX_MATCHES && rankingStrategy == Config.ZERO_RANKING) {
-			// if zero ranking then when topMatches is reached, then do not
-			// store any other match
-			return;
-		} else if (depth == pg.size() && c.size() != 0) {
+		}else if (depth == pg.size() && c.size() != 0) {
 			computeMatchesTime(c);
 		} else if (!c.isEmpty()) {
 
@@ -354,9 +350,15 @@ public class DurableMatching {
 		int duration = inter.cardinality();
 
 		// if duration equals to max duration
-		if (duration == maxDuration)
-			topMatches.add(new MatchInfo(duration, inter, match));
-		else if (duration > maxDuration) {
+		if (duration == maxDuration) {
+			if (topMatches.size() == Config.MAX_MATCHES && rankingStrategy == Config.ZERO_RANKING) {
+				// if zero ranking then when topMatches is reached, then do not
+				// store any other match
+				return;
+			}
+			
+			topMatches.add(new Match(duration, inter, match));
+		} else if (duration > maxDuration) {
 
 			// update the max duration
 			maxDuration = duration;
@@ -366,9 +368,9 @@ public class DurableMatching {
 
 			// clean the old matches
 			topMatches.clear();
-
+			
 			// add match
-			topMatches.add(new MatchInfo(duration, inter, match));
+			topMatches.add(new Match(duration, inter, match));
 		}
 	}
 
@@ -848,7 +850,7 @@ public class DurableMatching {
 		// stores the result
 		String result = "";
 
-		for (MatchInfo mI : topMatches) {
+		for (Match mI : topMatches) {
 
 			result += "------ Match ------\n";
 
@@ -930,7 +932,7 @@ public class DurableMatching {
 		w.write("Total matches: " + topMatches.size() + "\n");
 		w.write("sizeOfRank: " + sizeOfRank + "\n");
 		w.write("Total Recursions: " + totalRecursions + "\n");
-		w.write("Recursive Time: " + totalTime + " (ms)\n");
+		w.write("Recursive Time: " + totalTime + " (ms)\n\n");
 		w.write(result);
 		w.close();
 	}
