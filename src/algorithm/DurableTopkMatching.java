@@ -8,6 +8,7 @@ import graph.version.Graph;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -53,6 +54,8 @@ public class DurableTopkMatching {
 
 	// stores the matches
 	private PriorityQueue<Match> topkMatches;
+
+	private Set<String> matchesFound;
 
 	// total recursions
 	private int totalRecursions = 0;
@@ -127,6 +130,8 @@ public class DurableTopkMatching {
 		// default ranking is running
 		if (rankingStrategy == Config.ZERO_RANKING)
 			threshold = 2;
+		else
+			matchesFound = new HashSet<>();
 
 		while (threshold > 1) {
 
@@ -143,8 +148,9 @@ public class DurableTopkMatching {
 					initC.get(pn_id).addAll(entry1.getValue());
 			}
 
-			if (rankingStrategy != Config.ZERO_RANKING)
-				System.out.print("Algoterm: " + threshold + "\tCan_size: " + initC.get(0).size());
+			// if (rankingStrategy != Config.ZERO_RANKING)
+			// System.out.print("Algoterm: " + threshold + "\tCan_size: " +
+			// initC.get(0).size());
 
 			sizeOfRank++;
 
@@ -153,15 +159,15 @@ public class DurableTopkMatching {
 			try {
 				tempRec = 0;
 				searchPattern(initC, 0);
-				System.out.print("\tTermRec: " + tempRec + "\n");
+				// System.out.print("\tRecursiveCalls: " + tempRec + "\n");
 			} catch (Exception e) {
 				System.out.println("\nHAVE A LOOK: " + e.getMessage());
 			}
 
-			// matches found
+			// topk matches found
 			if (topkMatches.size() == k)
 				break;
-			// TODO
+
 			// get new threshold
 			if (rankingStrategy == Config.HALFWAY_RANKING)
 				threshold = getHalfwayThreshold();
@@ -174,7 +180,8 @@ public class DurableTopkMatching {
 	}
 
 	/**
-	 * Compute the next threshold based on halfway ranking
+	 * Compute the next threshold based on halfway ranking TODO halfway for topk
+	 * is not done
 	 * 
 	 * @return
 	 */
@@ -220,6 +227,7 @@ public class DurableTopkMatching {
 			if (ranking.floorKey(threshold) == null)
 				continue;
 
+			// get the lower highest threshold
 			sc = ranking.floorKey(threshold);
 
 			if (threshold > sc)
@@ -246,15 +254,6 @@ public class DurableTopkMatching {
 
 		if (System.currentTimeMillis() > (start + Config.TIME_LIMIT * 1000)) {
 			throw new Exception("Reach time limit");
-		} else if (topkMatches.size() == Config.MAX_MATCHES
-				&& (rankingStrategy == Config.MAX_RANKING || rankingStrategy == Config.HALFWAY_RANKING)) {
-
-			// TODO max and halfway topk
-
-			// max matches limit can be used only in the below strategies
-			// zero strategy may find more matches than the limit that are not
-			// the best solution at the current step
-			throw new Exception("Reach maxMatches");
 		} else if (depth == pg.size() && c.size() != 0) {
 			computeMatchesTime(c);
 		} else if (!c.isEmpty()) {
@@ -286,6 +285,11 @@ public class DurableTopkMatching {
 	private void computeMatchesTime(Map<Integer, Set<Node>> match) {
 		BitSet inter = (BitSet) iQ.clone();
 		Edge e;
+		String matchSign = null;
+		int[] signAr = null;
+
+		if (rankingStrategy != Config.ZERO_RANKING)
+			signAr = new int[match.size()];
 
 		if (Config.LABEL_CHANGE) {
 
@@ -293,6 +297,9 @@ public class DurableTopkMatching {
 			for (Entry<Integer, Set<Node>> entry : match.entrySet()) {
 
 				for (Node n : entry.getValue()) {
+
+					if (rankingStrategy != Config.ZERO_RANKING)
+						signAr[entry.getKey()] = n.getID();
 
 					// intersect labels lifespan
 					inter.and(n.getLabel(pg.getNode(entry.getKey()).getLabel()));
@@ -317,6 +324,10 @@ public class DurableTopkMatching {
 				}
 			}
 		}
+
+		// if match has already been found
+		if (rankingStrategy != Config.ZERO_RANKING && matchesFound.contains((matchSign = Arrays.toString(signAr))))
+			return;
 
 		// check the edges
 		for (PatternNode pn : pg.getNodes()) {
@@ -359,25 +370,68 @@ public class DurableTopkMatching {
 		// duration of match
 		int duration = inter.cardinality(), minDuration;
 
-		if (topkMatches.size() < k)
-			// add the match
-			topkMatches.offer(new Match(duration, inter, match));
-		else if (topkMatches.size() == k) {
+		// if ranking strategy is max
+		if (rankingStrategy == Config.MAX_RANKING) {
 
-			// if we have found k matches and the new match has higher duration
-			if (duration > (minDuration = topkMatches.peek().getDuration())) {
-
-				// remove match with the min duration
-				topkMatches.remove();
+			if (topkMatches.size() < k) {
 
 				// add the match
 				topkMatches.offer(new Match(duration, inter, match));
-				threshold = topkMatches.peek().getDuration();
-			} else if (duration == minDuration) {
 
-				// set the threshold to look for matches with duration >=
-				// duration of min element in heap
-				threshold = duration + 1;
+				// add the sign
+				matchesFound.add(matchSign);
+
+			} else if (topkMatches.size() == k) {
+
+				// if we have found k matches and the new match has higher
+				// duration
+				if (duration > (minDuration = topkMatches.peek().getDuration())) {
+
+					// remove match with the min duration as and its sign
+					matchesFound.remove(topkMatches.poll());
+
+					// add the match
+					topkMatches.offer(new Match(duration, inter, match));
+
+					// add the sign
+					matchesFound.add(matchSign);
+
+					// update threhshold
+					threshold = topkMatches.peek().getDuration();
+
+				} else if (duration == minDuration) {
+
+					// set the threshold to look for matches with duration <=
+					// duration of min element in heap
+					threshold = duration - 1;
+				}
+			}
+		} else if (rankingStrategy == Config.ZERO_RANKING) { // ranking strategy
+																// is zero
+
+			if (topkMatches.size() < k) {
+
+				// add the match
+				topkMatches.offer(new Match(duration, inter, match));
+
+			} else if (topkMatches.size() == k) {
+
+				// if we have found k matches and the new match has higher
+				// duration
+				if (duration > (minDuration = topkMatches.peek().getDuration())) {
+
+					// remove match with the min duration
+					topkMatches.remove();
+
+					// add the match
+					topkMatches.offer(new Match(duration, inter, match));
+					threshold = topkMatches.peek().getDuration();
+				} else if (duration == minDuration) {
+
+					// set the threshold to look for matches with duration >=
+					// duration of min element in heap
+					threshold = duration + 1;
+				}
 			}
 		}
 	}

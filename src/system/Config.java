@@ -14,19 +14,25 @@ import java.util.logging.Logger;
  */
 public final class Config {
 	// ====================================================
-
+	
+	// max ranking identifier
 	public final static int MAX_RANKING = 1;
 
+	// halfway ranking identifier
 	public final static int HALFWAY_RANKING = 2;
 
+	// zero ranking identifier
 	public final static int ZERO_RANKING = 3;
 
 	// ====================================================
-
+	
+	// enable load of serialized graph and index object
 	public static boolean LOAD_OBJECT;
 
+	// store all objects in a file
 	public static boolean STORE_OBJECT;
 
+	// path of file that stores all objects
 	public static String PATH_OBJECT;
 
 	// path of graph dataset
@@ -44,12 +50,15 @@ public final class Config {
 	// dataset direction
 	public static boolean ISDIRECTED;
 
+	// for matches with contiguous duration
 	public static boolean CONTIGUOUS_MATCHES;
 
 	public static boolean RUN_RANDOM;
 
+	// Run topk algorithm
 	public static boolean RUN_TOPK_QUERIES;
 
+	// Run durable algorithm
 	public static boolean RUN_DURABLE_QUERIES;
 
 	// maximum interval of graph lifespan
@@ -72,22 +81,34 @@ public final class Config {
 	// for max ranking execution
 	public static boolean MAX_RANKING_ENABLED;
 
-	// maximum matches that we want to get
+	// maximum matches that we want to get for debug purpose in DurableQueries
 	public static int MAX_MATCHES;
-	
+
+	// time limit in seconds for algorithm's execution
 	public static int TIME_LIMIT;
-	
+
+	// k matches for Durable Topk Queries
 	public static int K;
 
-	// nodes' labels change
+	// nodes' labels change over time
 	public static boolean LABEL_CHANGE;
 
-	// time indexes
+	// enable TiNLa
 	public static boolean TINLA_ENABLED;
+	
+	// enable CTiNLa
 	public static boolean CTINLA_ENABLED;
+	
+	// enable TiPLa
 	public static boolean TIPLA_ENABLED;
+	
+	// depth for TiPLa
 	public static int TIPLA_MAX_DEPTH;
+	
+	// radius for TiNLa
 	public static int TINLA_R;
+	
+	// radius for CTiNLa
 	public static int CTINLA_R;
 
 	private static final Logger _log = Logger.getLogger(Config.class.getName());
@@ -127,7 +148,7 @@ public final class Config {
 			TINLA_ENABLED = Boolean.parseBoolean(Settings.getProperty("TiNLa", "false"));
 			CTINLA_ENABLED = Boolean.parseBoolean(Settings.getProperty("CTiNLa", "false"));
 			TIPLA_ENABLED = Boolean.parseBoolean(Settings.getProperty("TiPLa", "false"));
-			MAX_MATCHES = Integer.parseInt(Settings.getProperty("MaxMatches", "1"));
+			MAX_MATCHES = Integer.parseInt(Settings.getProperty("MaxMatches", "-1"));
 			K = Integer.parseInt(Settings.getProperty("k", "1"));
 			TIME_LIMIT = Integer.parseInt(Settings.getProperty("TimeLimit", "3600"));
 			MAXIMUM_INTERVAL = Integer.parseInt(Settings.getProperty("MaximumInterval", "-1"));
@@ -139,6 +160,13 @@ public final class Config {
 			LABEL_CHANGE = Boolean.parseBoolean(Settings.getProperty("LabelChange", "false"));
 
 			boolean stop = false;
+
+			// if max matches restriction is disabled then set algorithm to
+			// retrieve everything
+			if (MAX_MATCHES == -1)
+				MAX_MATCHES = Integer.MAX_VALUE;
+			else
+				_log.log(Level.WARNING, "Limit to number of matches is enabled", new Exception());
 
 			if (PATH_DATASET.isEmpty()) {
 				_log.log(Level.SEVERE, "dataset path is empty." + ". Abborted.", new Exception());
