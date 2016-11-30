@@ -245,8 +245,8 @@ public class DurableMatching {
 			// zero strategy may find more matches than the limit that are not
 			// the best solution at the current step
 			throw new Exception("Reach maxMatches");
-		}else if (depth == pg.size() && c.size() != 0) {
-			computeMatchesTime(c);
+		} else if (depth == pg.size() && c.size() != 0) {
+			computeMatchTime(c);
 		} else if (!c.isEmpty()) {
 
 			for (Node u : c.get(depth)) {
@@ -273,75 +273,44 @@ public class DurableMatching {
 	 * 
 	 * @param match
 	 */
-	private void computeMatchesTime(Map<Integer, Set<Node>> match) {
+	private void computeMatchTime(Map<Integer, Set<Node>> match) {
 		BitSet inter = (BitSet) iQ.clone();
-		Edge e;
-
-		if (Config.LABEL_CHANGE) {
-
-			// check labels intersection
-			for (Entry<Integer, Set<Node>> entry : match.entrySet()) {
-
-				for (Node n : entry.getValue()) {
-
-					// intersect labels lifespan
-					inter.and(n.getLabel(pg.getNode(entry.getKey()).getLabel()));
-
-					if (continuously) {
-
-						BitSet shifted = (BitSet) inter.clone();
-						int count = 0;
-
-						while (!shifted.isEmpty()) {
-							shifted.and(shifted.get(1, shifted.length()));
-							count++;
-						}
-
-						if (count < threshold)
-							return;
-
-					} else if (inter.cardinality() < threshold) {
-						// intersection is less than algoTerm or topScore
-						return;
-					}
-				}
-			}
-		}
+		Node src, trg;
 
 		// check the edges
 		for (PatternNode pn : pg.getNodes()) {
 
+			// get the node that have same label as pn
+			src = match.get(pn.getID()).iterator().next();
+
+			if (Config.LABEL_CHANGE)
+				// intersect labels lifespan
+				inter.and(src.getLabel(pn.getLabel()));
+
 			// get adjacency of pn
 			for (PatternNode child : pn.getAdjacency()) {
 
-				// get the nodes that have same label as pn
-				for (Node n : match.get(pn.getID())) {
+				// get the node that have the same label as child
+				trg = match.get(child.getID()).iterator().next();
 
-					for (Node c : match.get(child.getID())) {
+				inter.and(src.getEdge(trg).getLifetime());
 
-						if ((e = n.getEdge(c)) != null) {
+				if (continuously) {
+					BitSet shifted = (BitSet) inter.clone();
+					int count = 0;
 
-							inter.and(e.getLifetime());
-
-							if (continuously) {
-								BitSet shifted = (BitSet) inter.clone();
-								int count = 0;
-
-								while (!shifted.isEmpty()) {
-									shifted.and(shifted.get(1, shifted.length()));
-									count++;
-								}
-
-								if (count < threshold)
-									return;
-
-							} else if (inter.cardinality() < threshold) {
-								// check if the cardinality is less than
-								// topScore or algoTerm
-								return;
-							}
-						}
+					while (!shifted.isEmpty()) {
+						shifted.and(shifted.get(1, shifted.length()));
+						count++;
 					}
+
+					if (count < threshold)
+						return;
+
+				} else if (inter.cardinality() < threshold) {
+					// check if the cardinality is less than
+					// topScore or algoTerm
+					return;
 				}
 			}
 		}
@@ -356,7 +325,7 @@ public class DurableMatching {
 				// store any other match
 				return;
 			}
-			
+
 			topMatches.add(new Match(duration, inter, match));
 		} else if (duration > maxDuration) {
 
@@ -368,7 +337,7 @@ public class DurableMatching {
 
 			// clean the old matches
 			topMatches.clear();
-			
+
 			// add match
 			topMatches.add(new Match(duration, inter, match));
 		}
