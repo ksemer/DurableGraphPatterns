@@ -57,6 +57,8 @@ public class DurableTopkMatching {
 
 	private Set<String> matchesFound;
 
+	private Set<Integer> durationMaxRanking;
+
 	// total recursions
 	private int totalRecursions = 0;
 
@@ -130,8 +132,10 @@ public class DurableTopkMatching {
 		// default ranking is running
 		if (rankingStrategy == Config.ZERO_RANKING)
 			threshold = 2;
-		else
+		else {
 			matchesFound = new HashSet<>();
+			durationMaxRanking = new HashSet<>();
+		}
 
 		while (threshold > 1) {
 
@@ -148,9 +152,8 @@ public class DurableTopkMatching {
 					initC.get(pn_id).addAll(entry1.getValue());
 			}
 
-			// if (rankingStrategy != Config.ZERO_RANKING)
-			// System.out.print("Algoterm: " + threshold + "\tCan_size: " +
-			// initC.get(0).size());
+			if (rankingStrategy != Config.ZERO_RANKING)
+				System.out.print("Algoterm: " + threshold + "\tCan_size: " + initC.get(0).size());
 
 			sizeOfRank++;
 
@@ -159,7 +162,7 @@ public class DurableTopkMatching {
 			try {
 				tempRec = 0;
 				searchPattern(initC, 0);
-				// System.out.print("\tRecursiveCalls: " + tempRec + "\n");
+				System.out.print("\tRecursiveCalls: " + tempRec + "\n");
 			} catch (Exception e) {
 				System.out.println("\nHAVE A LOOK: " + e.getMessage());
 			}
@@ -234,8 +237,13 @@ public class DurableTopkMatching {
 				threshold = sc;
 		}
 
-		if (oldT == threshold)
+		// if the min duration in heap is equal to threshold or is
+		// reduce the new threshold by one
+		if ((!topkMatches.isEmpty() && threshold == topkMatches.peek().getDuration()) || oldT == threshold)
 			threshold--;
+
+		// store threhsold that have been analyzed
+		durationMaxRanking.add(threshold);
 
 		return threshold;
 	}
@@ -255,7 +263,7 @@ public class DurableTopkMatching {
 		if (System.currentTimeMillis() > (start + Config.TIME_LIMIT * 1000)) {
 			throw new Exception("Reach time limit");
 		} else if (depth == pg.size() && c.size() != 0) {
-			computeMatchesTime(c);
+			computeMatchTime(c);
 		} else if (!c.isEmpty()) {
 
 			for (Node u : c.get(depth)) {
@@ -282,45 +290,52 @@ public class DurableTopkMatching {
 	 * 
 	 * @param match
 	 */
-	private void computeMatchesTime(Map<Integer, Set<Node>> match) {
+	private void computeMatchTime(Map<Integer, Set<Node>> match) {
 		BitSet inter = (BitSet) iQ.clone();
-		Edge e;
+		Node src, trg;
 		String matchSign = null;
 		int[] signAr = null;
 
 		if (rankingStrategy != Config.ZERO_RANKING)
 			signAr = new int[match.size()];
 
-		if (Config.LABEL_CHANGE) {
+		// check the edges
+		for (PatternNode pn : pg.getNodes()) {
 
-			// check labels intersection
-			for (Entry<Integer, Set<Node>> entry : match.entrySet()) {
+			// get the node that have same label as pn
+			src = match.get(pn.getID()).iterator().next();
 
-				for (Node n : entry.getValue()) {
+			if (rankingStrategy != Config.ZERO_RANKING)
+				signAr[pn.getID()] = src.getID();
 
-					if (rankingStrategy != Config.ZERO_RANKING)
-						signAr[entry.getKey()] = n.getID();
+			if (Config.LABEL_CHANGE)
+				// intersect labels lifespan
+				inter.and(src.getLabel(pn.getLabel()));
 
-					// intersect labels lifespan
-					inter.and(n.getLabel(pg.getNode(entry.getKey()).getLabel()));
+			// get adjacency of pn
+			for (PatternNode child : pn.getAdjacency()) {
 
-					if (continuously) {
+				// get the node that have the same label as child
+				trg = match.get(child.getID()).iterator().next();
 
-						BitSet shifted = (BitSet) inter.clone();
-						int count = 0;
+				inter.and(src.getEdge(trg).getLifetime());
 
-						while (!shifted.isEmpty()) {
-							shifted.and(shifted.get(1, shifted.length()));
-							count++;
-						}
+				if (continuously) {
+					BitSet shifted = (BitSet) inter.clone();
+					int count = 0;
 
-						if (count < threshold)
-							return;
-
-					} else if (inter.cardinality() < threshold) {
-						// intersection is less than algoTerm or topScore
-						return;
+					while (!shifted.isEmpty()) {
+						shifted.and(shifted.get(1, shifted.length()));
+						count++;
 					}
+
+					if (count < threshold)
+						return;
+
+				} else if (inter.cardinality() < threshold) {
+					// check if the cardinality is less than
+					// topScore or algoTerm
+					return;
 				}
 			}
 		}
@@ -328,44 +343,6 @@ public class DurableTopkMatching {
 		// if match has already been found
 		if (rankingStrategy != Config.ZERO_RANKING && matchesFound.contains((matchSign = Arrays.toString(signAr))))
 			return;
-
-		// check the edges
-		for (PatternNode pn : pg.getNodes()) {
-
-			// get adjacency of pn
-			for (PatternNode child : pn.getAdjacency()) {
-
-				// get the nodes that have same label as pn
-				for (Node n : match.get(pn.getID())) {
-
-					for (Node c : match.get(child.getID())) {
-
-						if ((e = n.getEdge(c)) != null) {
-
-							inter.and(e.getLifetime());
-
-							if (continuously) {
-								BitSet shifted = (BitSet) inter.clone();
-								int count = 0;
-
-								while (!shifted.isEmpty()) {
-									shifted.and(shifted.get(1, shifted.length()));
-									count++;
-								}
-
-								if (count < threshold)
-									return;
-
-							} else if (inter.cardinality() < threshold) {
-								// check if the cardinality is less than
-								// topScore or algoTerm
-								return;
-							}
-						}
-					}
-				}
-			}
-		}
 
 		// duration of match
 		int duration = inter.cardinality(), minDuration;
@@ -399,11 +376,15 @@ public class DurableTopkMatching {
 					// update threhshold
 					threshold = topkMatches.peek().getDuration();
 
+					durationMaxRanking.add(threshold);
+
 				} else if (duration == minDuration) {
 
-					// set the threshold to look for matches with duration <=
-					// duration of min element in heap
-					threshold = duration - 1;
+					// set the threshold to look for matches with duration >=
+					// duration of min element in heap (if it is not already
+					// checked)
+					if (durationMaxRanking.contains(++duration))
+						threshold = duration;
 				}
 			}
 		} else if (rankingStrategy == Config.ZERO_RANKING) { // ranking strategy
