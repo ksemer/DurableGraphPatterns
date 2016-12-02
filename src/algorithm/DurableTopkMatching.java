@@ -76,8 +76,9 @@ public class DurableTopkMatching {
 
 	private int rankingStrategy;
 
+	long timeLimit;
+
 	// ===============================================================
-	long start;
 
 	/**
 	 * Constructor
@@ -101,7 +102,7 @@ public class DurableTopkMatching {
 
 		// initial C
 		Map<Integer, Set<Node>> initC;
-		start = System.currentTimeMillis();
+		timeLimit = System.currentTimeMillis();
 
 		// to start counting the time
 		Main.TIME = System.currentTimeMillis();
@@ -242,7 +243,7 @@ public class DurableTopkMatching {
 		if ((!topkMatches.isEmpty() && threshold == topkMatches.peek().getDuration()) || oldT == threshold)
 			threshold--;
 
-		// store threhsold that have been analyzed
+		// store threshold that have been analyzed
 		durationMaxRanking.add(threshold);
 
 		return threshold;
@@ -260,7 +261,7 @@ public class DurableTopkMatching {
 		totalRecursions++;
 		tempRec++;
 
-		if (System.currentTimeMillis() > (start + Config.TIME_LIMIT * 1000)) {
+		if (System.currentTimeMillis() > (timeLimit + Config.TIME_LIMIT * 1000)) {
 			throw new Exception("Reach time limit");
 		} else if (depth == pg.size() && c.size() != 0) {
 			computeMatchTime(c);
@@ -671,8 +672,11 @@ public class DurableTopkMatching {
 		boolean found;
 		BitSet lifespan;
 		int label, sc;
-		Set<Node> pnode_candidates, current_candidates;
+		Set<Node> pnode_candidates, current_candidates, candidates;
 		Map<Integer, Set<Node>> rankingBasedOnlifespanScore;
+
+		// store for a label the candidate nodes
+		Map<Integer, Set<Node>> labelCandidates = new HashMap<>();
 		Node n;
 
 		for (PatternNode pn : pg.getNodes()) {
@@ -681,8 +685,18 @@ public class DurableTopkMatching {
 			// get pattern's node label
 			label = pn.getLabel();
 
-			for (Iterator<Integer> it = iQ.stream().iterator(); it.hasNext();)
-				pnode_candidates.addAll(lvg.getTiLaNodes(it.next(), label));
+			// if label exist then retrieve its candidates for all iQ
+			if ((candidates = labelCandidates.get(label)) != null)
+				pnode_candidates.addAll(candidates);
+			else {
+				// for each time instant get the candidates and add them in one
+				// set
+				for (Iterator<Integer> it = iQ.stream().iterator(); it.hasNext();)
+					pnode_candidates.addAll(lvg.getTiLaNodes(it.next(), label));
+
+				// candidates for label in iQ
+				labelCandidates.put(label, new HashSet<>(pnode_candidates));
+			}
 
 			rankingBasedOnlifespanScore = Rank.get(pn.getID());
 
@@ -728,7 +742,7 @@ public class DurableTopkMatching {
 					found = true;
 
 					// for each r
-					for (int r = 0; r < Config.TINLA_R; r++) {
+					for (int r = 0; r < Config.CTINLA_R; r++) {
 
 						for (Entry<Integer, Integer> l : pn.getLabelAdjacency_C(r).entrySet()) {
 
@@ -806,7 +820,7 @@ public class DurableTopkMatching {
 		Map<PatternNode, Map<Integer, nodeScore>> score = new HashMap<>();
 
 		// create pattern path index
-		Map<Integer, Set<String>> patternPathIndex = new PatternPathIndex(2).createPathIndex(pg);
+		Map<Integer, Set<String>> patternPathIndex = new PatternPathIndex(Config.TIPLA_MAX_DEPTH).createPathIndex(pg);
 
 		// initialize
 		for (PatternNode pn : pg.getNodes()) {

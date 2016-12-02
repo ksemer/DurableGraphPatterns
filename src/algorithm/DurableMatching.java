@@ -597,9 +597,12 @@ public class DurableMatching {
 		boolean found;
 		BitSet lifespan;
 		int label, sc;
-		Set<Node> pnode_candidates, current_candidates;
-		Map<Integer, Set<Node>> rankingBasedOnlifespanScore;
 		Node n;
+		Set<Node> pnode_candidates, current_candidates, candidates;
+		Map<Integer, Set<Node>> rankingBasedOnlifespanScore;
+
+		// store for a label the candidate nodes
+		Map<Integer, Set<Node>> labelCandidates = new HashMap<>();
 
 		for (PatternNode pn : pg.getNodes()) {
 			pnode_candidates = phi.get(pn.getID());
@@ -607,8 +610,18 @@ public class DurableMatching {
 			// get pattern's node label
 			label = pn.getLabel();
 
-			for (Iterator<Integer> it = iQ.stream().iterator(); it.hasNext();)
-				pnode_candidates.addAll(lvg.getTiLaNodes(it.next(), label));
+			// if label exist then retrieve its candidates for all iQ
+			if ((candidates = labelCandidates.get(label)) != null)
+				pnode_candidates.addAll(candidates);
+			else {
+				// for each time instant get the candidates and add them in a
+				// set
+				for (Iterator<Integer> it = iQ.stream().iterator(); it.hasNext();)
+					pnode_candidates.addAll(lvg.getTiLaNodes(it.next(), label));
+
+				// candidates for label in iQ
+				labelCandidates.put(label, new HashSet<>(pnode_candidates));
+			}
 
 			rankingBasedOnlifespanScore = Rank.get(pn.getID());
 
@@ -654,7 +667,7 @@ public class DurableMatching {
 					found = true;
 
 					// for each r
-					for (int r = 0; r < Config.TINLA_R; r++) {
+					for (int r = 0; r < Config.CTINLA_R; r++) {
 
 						for (Entry<Integer, Integer> l : pn.getLabelAdjacency_C(r).entrySet()) {
 
@@ -732,7 +745,7 @@ public class DurableMatching {
 		Map<PatternNode, Map<Integer, nodeScore>> score = new HashMap<>();
 
 		// create pattern path index
-		Map<Integer, Set<String>> patternPathIndex = new PatternPathIndex(2).createPathIndex(pg);
+		Map<Integer, Set<String>> patternPathIndex = new PatternPathIndex(Config.TIPLA_MAX_DEPTH).createPathIndex(pg);
 
 		// initialize
 		for (PatternNode pn : pg.getNodes()) {
