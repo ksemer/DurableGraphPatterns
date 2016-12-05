@@ -14,7 +14,7 @@ import java.util.logging.Logger;
  */
 public final class Config {
 	// ====================================================
-	
+
 	// max ranking identifier
 	public final static int MAX_RANKING = 1;
 
@@ -25,7 +25,7 @@ public final class Config {
 	public final static int ZERO_RANKING = 3;
 
 	// ====================================================
-	
+
 	// enable load of serialized graph and index object
 	public static boolean LOAD_OBJECT;
 
@@ -90,24 +90,27 @@ public final class Config {
 	// k matches for Durable Topk Queries
 	public static int K;
 
+	// candidates percent for halfway strategy
+	public static float CP;
+
 	// nodes' labels change over time
 	public static boolean LABEL_CHANGE;
 
 	// enable TiNLa
 	public static boolean TINLA_ENABLED;
-	
+
 	// enable CTiNLa
 	public static boolean CTINLA_ENABLED;
-	
+
 	// enable TiPLa
 	public static boolean TIPLA_ENABLED;
-	
+
 	// depth for TiPLa
 	public static int TIPLA_MAX_DEPTH;
-	
+
 	// radius for TiNLa
 	public static int TINLA_R;
-	
+
 	// radius for CTiNLa
 	public static int CTINLA_R;
 
@@ -135,29 +138,35 @@ public final class Config {
 			PATH_LABELS = Settings.getProperty("LabelPath", "");
 			PATH_OUTPUT = Settings.getProperty("OutputPath", "");
 			PATH_QUERY = Settings.getProperty("QueryPath", "");
-			RUN_TOPK_QUERIES = Boolean.parseBoolean(Settings.getProperty("TopkQueries", "false"));
-			RUN_DURABLE_QUERIES = Boolean.parseBoolean(Settings.getProperty("DurableQueries", "false"));
+
+			ISDIRECTED = Boolean.parseBoolean(Settings.getProperty("Directed", "false"));
 			LOAD_OBJECT = Boolean.parseBoolean(Settings.getProperty("LoadObject", "false"));
 			STORE_OBJECT = Boolean.parseBoolean(Settings.getProperty("StoreObject", "false"));
-			ISDIRECTED = Boolean.parseBoolean(Settings.getProperty("Directed", "false"));
+
+			RUN_RANDOM = Boolean.parseBoolean(Settings.getProperty("Random", "false"));
+			RUN_TOPK_QUERIES = Boolean.parseBoolean(Settings.getProperty("TopkQueries", "false"));
+			RUN_DURABLE_QUERIES = Boolean.parseBoolean(Settings.getProperty("DurableQueries", "false"));
 			CONTIGUOUS_MATCHES = Boolean.parseBoolean(Settings.getProperty("ContiguousMatches", "false"));
+
 			MAX_RANKING_ENABLED = Boolean.parseBoolean(Settings.getProperty("MaxRanking", "false"));
-			HALFWAY_RANKING_ENABLED = Boolean.parseBoolean(Settings.getProperty("HalfwayRanking", "false"));
 			ZERO_RANKING_ENABLED = Boolean.parseBoolean(Settings.getProperty("ZeroRanking", "false"));
+			HALFWAY_RANKING_ENABLED = Boolean.parseBoolean(Settings.getProperty("HalfwayRanking", "false"));
+
 			SHOW_MEMORY = Boolean.parseBoolean(Settings.getProperty("ShowMemory", "false"));
 			TINLA_ENABLED = Boolean.parseBoolean(Settings.getProperty("TiNLa", "false"));
 			CTINLA_ENABLED = Boolean.parseBoolean(Settings.getProperty("CTiNLa", "false"));
 			TIPLA_ENABLED = Boolean.parseBoolean(Settings.getProperty("TiPLa", "false"));
-			MAX_MATCHES = Integer.parseInt(Settings.getProperty("MaxMatches", "-1"));
+			LABEL_CHANGE = Boolean.parseBoolean(Settings.getProperty("LabelChange", "false"));
+
 			K = Integer.parseInt(Settings.getProperty("k", "1"));
-			TIME_LIMIT = Integer.parseInt(Settings.getProperty("TimeLimit", "3600"));
-			MAXIMUM_INTERVAL = Integer.parseInt(Settings.getProperty("MaximumInterval", "-1"));
+			CP = Float.parseFloat(Settings.getProperty("cp", "0.1"));
 			TINLA_R = Integer.parseInt(Settings.getProperty("TiNLa_r", "1"));
 			CTINLA_R = Integer.parseInt(Settings.getProperty("CTiNLa_r", "1"));
+			MAX_MATCHES = Integer.parseInt(Settings.getProperty("MaxMatches", "-1"));
+			TIME_LIMIT = Integer.parseInt(Settings.getProperty("TimeLimit", "3600"));
 			TIPLA_MAX_DEPTH = Integer.parseInt(Settings.getProperty("TiPLa_depth", "2"));
-			RUN_RANDOM = Boolean.parseBoolean(Settings.getProperty("Random", "false"));
+			MAXIMUM_INTERVAL = Integer.parseInt(Settings.getProperty("MaximumInterval", "-1"));
 			RANDOM_ITERATIONS = Integer.parseInt(Settings.getProperty("RandomIterations", "5"));
-			LABEL_CHANGE = Boolean.parseBoolean(Settings.getProperty("LabelChange", "false"));
 
 			boolean stop = false;
 

@@ -89,10 +89,10 @@ public class DurableTopkMatching {
 	 * @param continuously
 	 * @param k
 	 * @param rankingStrategy
-	 * @throws Exception
+	 * @throws IOException
 	 */
 	public DurableTopkMatching(Graph lvg, PatternGraph pg, BitSet iQ, boolean continuously, int k, int rankingStrategy)
-			throws Exception {
+			throws IOException {
 
 		this.k = k;
 		this.pg = pg;
@@ -120,7 +120,18 @@ public class DurableTopkMatching {
 		int sc, pn_id;
 
 		for (PatternNode p : pg.getNodes()) {
+
 			ranking = Rank.get(p.getID());
+
+			// if ranking is empty then no matches
+			if (ranking.isEmpty()) {
+				threshold = -1;
+
+				// write no matches
+				writeTopMatches();
+
+				return;
+			}
 
 			sc = ranking.lastKey();
 
@@ -193,11 +204,7 @@ public class DurableTopkMatching {
 		int sc, oldT = threshold;
 		TreeMap<Integer, Set<Node>> ranking;
 
-		threshold /= 2 + 1;
-
-		if (oldT == threshold)
-			return 1;
-
+		// lkl
 		for (PatternNode p : pg.getNodes()) {
 			ranking = Rank.get(p.getID());
 
@@ -210,8 +217,13 @@ public class DurableTopkMatching {
 				threshold = sc;
 		}
 
-		if (threshold == 1 && oldT != 2)
-			return 2;
+		// if the min duration in heap is equal to threshold or is
+		// reduce the new threshold by one
+		if ((!topkMatches.isEmpty() && threshold == topkMatches.peek().getDuration()) || oldT == threshold)
+			threshold--;
+
+		// store threshold that have been analyzed
+		durationMaxRanking.add(threshold);
 
 		return threshold;
 	}
@@ -671,7 +683,7 @@ public class DurableTopkMatching {
 
 		boolean found;
 		BitSet lifespan;
-		int label, sc;
+		int label;
 		Set<Node> pnode_candidates, current_candidates, candidates;
 		Map<Integer, Set<Node>> rankingBasedOnlifespanScore;
 
@@ -740,6 +752,8 @@ public class DurableTopkMatching {
 						continue;
 				} else if (Config.CTINLA_ENABLED) {
 					found = true;
+					
+					Map<Integer, Integer> cL;
 
 					// for each r
 					for (int r = 0; r < Config.CTINLA_R; r++) {
@@ -748,27 +762,18 @@ public class DurableTopkMatching {
 
 							// if there is not a neighbor with that label
 							// remove it
-							if (n.getTiNLa_C(r, l.getKey()) == null) {
+							if ((cL = n.getTiNLa_C(r, l.getKey())) == null) {
 								found = false;
 								it.remove();
 								break;
 							} else { // otherwise get the lifespan and intersect
-								lifespan.and(n.getTiNLa_C(r, l.getKey()));
 
-								// check if the neighborhood lifespan
-								// intersection
-								// is not empty
+								lifespan.and(n.getTiNLa_C(r, l.getKey(), l.getValue(), lifespan));
+									
 								if (lifespan.isEmpty()) {
 									found = false;
 									it.remove();
 									break;
-								} else {
-									lifespan.and(n.getTiNLa_C(r, l.getKey(), l.getValue(), lifespan));
-									if (lifespan.isEmpty()) {
-										found = false;
-										it.remove();
-										break;
-									}
 								}
 							}
 						}
@@ -783,6 +788,8 @@ public class DurableTopkMatching {
 					it.remove();
 					continue;
 				}
+
+				int sc;
 
 				// remove node from candidates since with score 1 it is not
 				// durable
@@ -933,6 +940,13 @@ public class DurableTopkMatching {
 		w.write("Total Recursions: " + totalRecursions + "\n");
 		w.write("-------------------\n");
 
+		// no matches found
+		if (threshold == -1) {
+			w.write("No matches");
+			w.close();
+			return;
+		}
+
 		// stores the result
 		String result = "";
 		BitSet shifted;
@@ -1003,6 +1017,7 @@ public class DurableTopkMatching {
 
 			result += "-------------------\n";
 		}
+
 		w.write(result);
 		w.close();
 	}

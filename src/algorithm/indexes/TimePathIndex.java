@@ -72,7 +72,9 @@ public class TimePathIndex implements Serializable {
 
 			// to contain also the paths of size 0, node label itself
 			for (Node n : g.getNodes()) {
+
 				for (int label = 0; label < Config.SIZE_OF_LABELS; label++) {
+
 					for (Iterator<Integer> it = n.getLabel(label).stream().iterator(); it.hasNext();) {
 						int t = it.next();
 
@@ -88,7 +90,7 @@ public class TimePathIndex implements Serializable {
 
 		System.out.println("TiPLa time: " + (System.currentTimeMillis() - time) / 1000 + " (sec)");
 
-		return this.timePathIndexWT;
+		return timePathIndexWT;
 	}
 
 	/**

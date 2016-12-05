@@ -59,7 +59,7 @@ public class LoaderDBLP {
 
 			// src -> trg time label
 			lvg.addEdge(n1_id, n2_id, time);
-			
+
 			if (!Config.ISDIRECTED)
 				// src -> trg time label
 				lvg.addEdge(n2_id, n1_id, time);
@@ -152,6 +152,7 @@ public class LoaderDBLP {
 
 		// attributes for publications count
 		if ((line = br.readLine()).contains("Publications_count")) {
+
 			// update labels size
 			Config.SIZE_OF_LABELS = 4;
 
@@ -257,9 +258,10 @@ public class LoaderDBLP {
 	public static Map<Integer, String> getAuthors() {
 		return authorsNames;
 	}
-	
+
 	/**
 	 * Update auhorNames with object
+	 * 
 	 * @param object
 	 */
 	public static void setAuthors(Map<Integer, String> object) {

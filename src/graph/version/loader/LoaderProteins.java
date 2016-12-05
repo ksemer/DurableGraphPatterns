@@ -36,14 +36,25 @@ public class LoaderProteins {
 		String line = null;
 		String[] edge;
 		Node node;
-		int n1, n2, lID = 0, time = -1;
+		int n1, n2, lID = 0, time = -1, label;
 		long executionTime = System.currentTimeMillis();
+		boolean nodes = false, edges = false;
+		int sizeOfNodes = 0, nID = 0, numberOfInstances = 0;
+
+		while ((line = br.readLine()) != null) {
+			// new graph instance
+			if (line.contains("#")) {
+				numberOfInstances++;
+			}
+		}
+		br.close();
+
+		Config.MAXIMUM_INTERVAL = numberOfInstances;
+		System.out.println("Max Interval: " + Config.MAXIMUM_INTERVAL);
 
 		Graph lvg = new Graph();
 
-		boolean nodes = false, edges = false;
-		int sizeOfNodes = 0, nID = 0;
-
+		br = new BufferedReader(new FileReader(Config.PATH_DATASET));
 		while ((line = br.readLine()) != null) {
 			// new graph instance
 			if (line.contains("#")) {
@@ -61,11 +72,13 @@ public class LoaderProteins {
 				line = line.trim();
 
 				if (!labels.containsKey(line)) {
+					label = lID;
 					labels.put(line, lID++);
-				}
+				} else
+					label = labels.get(line);
 
-				node.updateLabelLifetime(0, time);
-				lvg.udpateTiLa(time, 0, node);
+				node.updateLabelLifetime(label, time);
+				lvg.udpateTiLa(time, label, node);
 
 				sizeOfNodes--;
 
@@ -77,6 +90,9 @@ public class LoaderProteins {
 			} else if (edges) {
 				// edge
 				edge = line.split("\\s+");
+
+				if (edge.length < 2)
+					continue;
 
 				// src node
 				n1 = Integer.parseInt(edge[0]);
@@ -95,12 +111,14 @@ public class LoaderProteins {
 		br.close();
 
 		Config.SIZE_OF_LABELS = labels.size();
+		System.out.println("Labels: " + labels.size());
 
-		System.out.println("TiLa time: " + (System.currentTimeMillis() - time) / 1000 + " (sec)");
+		System.out.println("TiLa time: " + (System.currentTimeMillis() - executionTime) / 1000 + " (sec)");
+
+		long memory;
+		Runtime runtime = Runtime.getRuntime();
 
 		if (Config.TINLA_ENABLED || Config.CTINLA_ENABLED) {
-			Runtime runtime = Runtime.getRuntime();
-			long memory;
 
 			// For displaying memory usage
 			if (Config.SHOW_MEMORY) {
@@ -131,6 +149,30 @@ public class LoaderProteins {
 					System.out.println("Used memory is megabytes with (TiNLa): " + Main.bytesToMegabytes(memory));
 				else if (Config.CTINLA_ENABLED)
 					System.out.println("Used memory is megabytes with (CTiNLa): " + Main.bytesToMegabytes(memory));
+			}
+		} else if (Config.TIPLA_ENABLED) {
+
+			if (Config.SHOW_MEMORY) {
+				// Run the garbage collector
+				runtime.gc();
+
+				// Calculate the used memory
+				memory = runtime.totalMemory() - runtime.freeMemory();
+
+				System.out.println("Used memory is megabytes without (TiPLa): " + Main.bytesToMegabytes(memory));
+			}
+
+			lvg.createTiPLa();
+
+			if (Config.SHOW_MEMORY) {
+
+				// Run the garbage collector
+				runtime.gc();
+
+				// Calculate the used memory
+				memory = runtime.totalMemory() - runtime.freeMemory();
+
+				System.out.println("Used memory is megabytes with (TiPLa): " + Main.bytesToMegabytes(memory));
 			}
 		}
 

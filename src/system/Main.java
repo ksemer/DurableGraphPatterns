@@ -29,7 +29,8 @@ public class Main {
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws Exception {
 		Config.loadConfigs();
-
+		//TODO na enhmerwnw iQ otan kanw load to arxeio
+		// na koitaw analoga ta config an yparxoun oi domes
 		Graph lvg;
 		BitSet iQ = new BitSet(Config.MAXIMUM_INTERVAL);
 		iQ.set(0, Config.MAXIMUM_INTERVAL, true);
@@ -62,7 +63,8 @@ public class Main {
 				Storage.serialize(lvg, Config.PATH_OBJECT);
 		}
 
-		new Query(lvg, iQ).run();
+		if (Config.RUN_DURABLE_QUERIES || Config.RUN_TOPK_QUERIES)
+			new Query(lvg, iQ).run();
 	}
 
 	/**

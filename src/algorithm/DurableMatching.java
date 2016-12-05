@@ -110,6 +110,16 @@ public class DurableMatching {
 		for (PatternNode p : pg.getNodes()) {
 			ranking = Rank.get(p.getID());
 
+			// if ranking is empty then no matches
+			if (ranking.isEmpty()) {
+				threshold = -1;
+
+				// write no matches
+				writeTopMatches();
+
+				return;
+			}
+
 			sc = ranking.lastKey();
 
 			if (threshold > sc)
@@ -829,6 +839,41 @@ public class DurableMatching {
 	private void writeTopMatches() throws IOException {
 		totalTime = (System.currentTimeMillis() - Main.TIME);
 
+		String outputPath = Config.PATH_OUTPUT + "pq=" + pg.getID() + "_";
+
+		if (continuously)
+			outputPath += "cont_";
+
+		if (Config.TINLA_ENABLED)
+			outputPath += "tinla(" + Config.TINLA_R + ")_";
+		else if (Config.CTINLA_ENABLED)
+			outputPath += "ctinla(" + Config.CTINLA_R + ")_";
+		else if (Config.TIPLA_ENABLED)
+			outputPath += "tipla_";
+		else
+			outputPath += "tila_";
+
+		if (rankingStrategy == Config.HALFWAY_RANKING)
+			outputPath += "r=h";
+		else if (rankingStrategy == Config.MAX_RANKING)
+			outputPath += "r=m";
+		else if (rankingStrategy == Config.ZERO_RANKING)
+			outputPath += "r=z";
+
+		FileWriter w = new FileWriter(outputPath);
+		w.write("Total matches: " + topMatches.size() + "\n");
+		w.write("Recursive Time: " + totalTime + " (ms)\n");
+		w.write("sizeOfRank: " + sizeOfRank + "\n");
+		w.write("Total Recursions: " + totalRecursions + "\n");
+		w.write("-------------------\n");
+
+		// no matches found
+		if (threshold == -1) {
+			w.write("No matches");
+			w.close();
+			return;
+		}
+
 		// stores the result
 		String result = "";
 
@@ -889,32 +934,6 @@ public class DurableMatching {
 			result += "-------------------\n";
 		}
 
-		String outputPath = Config.PATH_OUTPUT + "pq=" + pg.getID() + "_";
-
-		if (continuously)
-			outputPath += "cont_";
-
-		if (Config.TINLA_ENABLED)
-			outputPath += "tinla(" + Config.TINLA_R + ")_";
-		else if (Config.CTINLA_ENABLED)
-			outputPath += "ctinla(" + Config.CTINLA_R + ")_";
-		else if (Config.TIPLA_ENABLED)
-			outputPath += "tipla_";
-		else
-			outputPath += "tila_";
-
-		if (rankingStrategy == Config.HALFWAY_RANKING)
-			outputPath += "r=h";
-		else if (rankingStrategy == Config.MAX_RANKING)
-			outputPath += "r=m";
-		else if (rankingStrategy == Config.ZERO_RANKING)
-			outputPath += "r=z";
-
-		FileWriter w = new FileWriter(outputPath);
-		w.write("Total matches: " + topMatches.size() + "\n");
-		w.write("sizeOfRank: " + sizeOfRank + "\n");
-		w.write("Total Recursions: " + totalRecursions + "\n");
-		w.write("Recursive Time: " + totalTime + " (ms)\n\n");
 		w.write(result);
 		w.close();
 	}

@@ -133,12 +133,12 @@ public class Node implements Serializable {
 	public BitSet getTiNLa_C(int r, int label, int c, BitSet lifespan) {
 		int t;
 		BitSet life = (BitSet) lifespan.clone();
-		Map<Integer, Integer> index = CTiNLa.get(r).getCounter(label);
+		Map<Integer, Integer> index = CTiNLa.get(r).getCTiNLa(label);
 
 		for (Iterator<Integer> it = lifespan.stream().iterator(); it.hasNext();) {
 			t = it.next();
 
-			// if node doesn't contaiin at least c neighbors then disable the t
+			// if node doesn't contain at least c neighbors then disable the t
 			// instant
 			if (index.get(t) < c)
 				life.set(t, false);
@@ -148,14 +148,14 @@ public class Node implements Serializable {
 	}
 
 	/**
-	 * Return for radius r the
+	 * Return for radius r the info from CTiNLa
 	 * 
 	 * @param r
 	 * @param label
 	 * @return
 	 */
-	public BitSet getTiNLa_C(int r, int label) {
-		return CTiNLa.get(r).getTiNLa(label);
+	public Map<Integer, Integer> getTiNLa_C(int r, int label) {
+		return CTiNLa.get(r).getCTiNLa(label);
 	}
 
 	/**

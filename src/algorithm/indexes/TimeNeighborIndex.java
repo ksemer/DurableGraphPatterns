@@ -50,7 +50,8 @@ public class TimeNeighborIndex implements Serializable {
 	 * @param label
 	 * @return
 	 */
-	public Map<Integer, Integer> getCounter(int label) {
+	public Map<Integer, Integer> getCTiNLa(int label) {
+		System.out.println(CTiNLa.keySet());
 		return CTiNLa.get(label);
 	}
 

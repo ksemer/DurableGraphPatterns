@@ -73,6 +73,8 @@ public class Query {
 				
 				if (Config.RUN_TOPK_QUERIES) {
 					List<Callable<?>> callables = new ArrayList<>();
+					new DurableTopkMatching(lvg, pg, iQ, Config.CONTIGUOUS_MATCHES, Config.K, Config.MAX_RANKING);
+					System.exit(0);
 
 					if (Config.MAX_RANKING_ENABLED)					
 						callables.add(setCallableTopkQ(lvg, pg, iQ, Config.MAX_RANKING));
