@@ -16,7 +16,6 @@ import utils.Storage;
  */
 public class Main {
 	// =================================================================
-	public static long TIME;
 	private static final long MEGABYTE = 1024L * 1024L;
 	// =================================================================
 
@@ -29,15 +28,25 @@ public class Main {
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws Exception {
 		Config.loadConfigs();
-		//TODO na enhmerwnw iQ otan kanw load to arxeio
-		// na koitaw analoga ta config an yparxoun oi domes
 		Graph lvg;
-		BitSet iQ = new BitSet(Config.MAXIMUM_INTERVAL);
-		iQ.set(0, Config.MAXIMUM_INTERVAL, true);
 
 		if (Config.LOAD_OBJECT) {
 			lvg = (Graph) Storage.deserialize(Config.PATH_OBJECT);
 			Config.PATH_DATASET = Config.PATH_OBJECT;
+
+			// retrieve maximum interval
+			Config.MAXIMUM_INTERVAL = lvg.getTiLa().size();
+
+			// check if object contains the required index
+			if (Config.TINLA_ENABLED && lvg.getNodes().iterator().next().getTiNLa().size() != Config.TINLA_R) {
+				throw new Exception("TiNLa index radius of " + Config.TINLA_R + "does not exist in loaded object");
+			} else if (Config.CTINLA_ENABLED
+					&& lvg.getNodes().iterator().next().getCTiNLa().size() != Config.CTINLA_R) {
+				throw new Exception("CTiNLa index radius of " + Config.CTINLA_R + "does not exist in loaded object");
+			} else if (Config.TIPLA_ENABLED && lvg.getTiPLa().size() != Config.TIPLA_MAX_DEPTH) {
+				throw new Exception(
+						"TiPLa index depth of " + Config.TIPLA_MAX_DEPTH + "does not exist in loaded object");
+			}
 
 			if (Config.PATH_DATASET.toLowerCase().contains("dblp"))
 				LoaderDBLP.setAuthors((Map<Integer, String>) Storage.deserialize(Config.PATH_OBJECT + "_authors_ids"));
@@ -63,8 +72,12 @@ public class Main {
 				Storage.serialize(lvg, Config.PATH_OBJECT);
 		}
 
-		if (Config.RUN_DURABLE_QUERIES || Config.RUN_TOPK_QUERIES)
+		if (Config.RUN_DURABLE_QUERIES || Config.RUN_TOPK_QUERIES) {
+			BitSet iQ = new BitSet(Config.MAXIMUM_INTERVAL);
+			iQ.set(0, Config.MAXIMUM_INTERVAL, true);
+
 			new Query(lvg, iQ).run();
+		}
 	}
 
 	/**

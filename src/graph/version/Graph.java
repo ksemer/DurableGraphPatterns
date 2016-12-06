@@ -192,8 +192,14 @@ public class Graph implements Serializable {
 					trg = e.getTarget();
 
 					// for avoiding cycles
-					if (R > 2 && visited.contains(trg))
-						continue;
+					if (R > 2) {
+						if (visited.contains(trg))
+							continue;
+						else {
+							// add node to visited set
+							visited.add(trg);
+						}
+					}
 
 					// for each label of trg node
 					for (Entry<Integer, BitSet> entry : trg.getLabels().entrySet()) {
@@ -213,14 +219,10 @@ public class Graph implements Serializable {
 								n.updateCTiNLa(r, label, t);
 						}
 					}
-
+					
+					//TODO skepsou kalutero tropo gia r > 1
 					// store in temp set the edges of the next hop
 					temp_edges.addAll(trg.getAdjacency());
-
-					if (R > 2) {
-						// add node to visited set
-						visited.add(trg);
-					}
 				}
 
 				// clear and set adjacency to show the next hop

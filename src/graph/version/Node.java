@@ -120,27 +120,43 @@ public class Node implements Serializable {
 	}
 
 	/**
-	 * Given a label, the radius and the c value Return a lifespan that denotes
-	 * that there are at least c neighborhoods with the given label in the given
+	 * Return TiNLa index
+	 * 
+	 * @return
+	 */
+	public List<Map<Integer, BitSet>> getTiNLa() {
+		return TiNLa;
+	}
+
+	/**
+	 * Return CTiNLa index
+	 * 
+	 * @return
+	 */
+	public List<TimeNeighborIndex> getCTiNLa() {
+		return CTiNLa;
+	}
+
+	/**
+	 * Given a cTiNLa index and a c value, return a lifespan that denotes that
+	 * there are at least c neighborhoods with the given label in the given
 	 * lifespan
 	 * 
-	 * @param r
-	 * @param label
+	 * @param cT
 	 * @param c
 	 * @param lifespan
 	 * @return
 	 */
-	public BitSet getTiNLa_C(int r, int label, int c, BitSet lifespan) {
+	public BitSet getCTiNLa(Map<Integer, Integer> cT, int c, BitSet lifespan) {
 		int t;
 		BitSet life = (BitSet) lifespan.clone();
-		Map<Integer, Integer> index = CTiNLa.get(r).getCTiNLa(label);
 
 		for (Iterator<Integer> it = lifespan.stream().iterator(); it.hasNext();) {
 			t = it.next();
 
 			// if node doesn't contain at least c neighbors then disable the t
 			// instant
-			if (index.get(t) < c)
+			if (cT.get(t) == null || cT.get(t) < c)
 				life.set(t, false);
 		}
 
@@ -154,8 +170,8 @@ public class Node implements Serializable {
 	 * @param label
 	 * @return
 	 */
-	public Map<Integer, Integer> getTiNLa_C(int r, int label) {
-		return CTiNLa.get(r).getCTiNLa(label);
+	public Map<Integer, Integer> getCTiNLa(int r, int label) {
+		return CTiNLa.get(r).getLabel(label);
 	}
 
 	/**

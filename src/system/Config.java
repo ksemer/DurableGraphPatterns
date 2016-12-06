@@ -18,8 +18,8 @@ public final class Config {
 	// max ranking identifier
 	public final static int MAX_RANKING = 1;
 
-	// halfway ranking identifier
-	public final static int HALFWAY_RANKING = 2;
+	// adaptive ranking identifier
+	public final static int ADAPTIVE_RANKING = 2;
 
 	// zero ranking identifier
 	public final static int ZERO_RANKING = 3;
@@ -75,8 +75,8 @@ public final class Config {
 	// for zero ranking
 	public static boolean ZERO_RANKING_ENABLED;
 
-	// for binary/halfway ranking execution
-	public static boolean HALFWAY_RANKING_ENABLED;
+	// for adaptive ranking execution
+	public static boolean ADAPTIVE_RANKING_ENABLED;
 
 	// for max ranking execution
 	public static boolean MAX_RANKING_ENABLED;
@@ -90,8 +90,11 @@ public final class Config {
 	// k matches for Durable Topk Queries
 	public static int K;
 
-	// candidates percent for halfway strategy
-	public static float CP;
+	// candidates percent for adaptive strategy
+	public static float CP = 10;
+	
+	// theta percent for adaptive strategy
+	public static float ADAPTIVE_THETA;
 
 	// nodes' labels change over time
 	public static boolean LABEL_CHANGE;
@@ -150,7 +153,7 @@ public final class Config {
 
 			MAX_RANKING_ENABLED = Boolean.parseBoolean(Settings.getProperty("MaxRanking", "false"));
 			ZERO_RANKING_ENABLED = Boolean.parseBoolean(Settings.getProperty("ZeroRanking", "false"));
-			HALFWAY_RANKING_ENABLED = Boolean.parseBoolean(Settings.getProperty("HalfwayRanking", "false"));
+			ADAPTIVE_RANKING_ENABLED = Boolean.parseBoolean(Settings.getProperty("AdaptiveRanking", "false"));
 
 			SHOW_MEMORY = Boolean.parseBoolean(Settings.getProperty("ShowMemory", "false"));
 			TINLA_ENABLED = Boolean.parseBoolean(Settings.getProperty("TiNLa", "false"));
@@ -160,6 +163,7 @@ public final class Config {
 
 			K = Integer.parseInt(Settings.getProperty("k", "1"));
 			CP = Float.parseFloat(Settings.getProperty("cp", "0.1"));
+			ADAPTIVE_THETA = Float.parseFloat(Settings.getProperty("adaptiveTheta", "0.1"));
 			TINLA_R = Integer.parseInt(Settings.getProperty("TiNLa_r", "1"));
 			CTINLA_R = Integer.parseInt(Settings.getProperty("CTiNLa_r", "1"));
 			MAX_MATCHES = Integer.parseInt(Settings.getProperty("MaxMatches", "-1"));

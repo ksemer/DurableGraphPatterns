@@ -27,7 +27,6 @@ import graph.version.Edge;
 import graph.version.Node;
 import graph.version.loader.LoaderDBLP;
 import system.Config;
-import system.Main;
 
 /**
  * DurableMatching Algorithm class
@@ -52,12 +51,17 @@ public class DurableTopkMatching {
 	// if the query is continuously
 	private boolean continuously;
 
-	// stores the matches
+	// stores the k matches
 	private PriorityQueue<Match> topkMatches;
 
+	// stores all the matches
 	private Set<String> matchesFound;
 
+	// stores all chosen theta
 	private Set<Integer> durationMaxRanking;
+
+	// minimum checked threshold Max, Adaptive
+	private int checkedTheta;
 
 	// total recursions
 	private int totalRecursions = 0;
@@ -68,15 +72,19 @@ public class DurableTopkMatching {
 	// k matches
 	private int k;
 
-	// recursions per run
-	private int tempRec;
+	// utility value for adaptive ranking
+	private int canDSize;
+
+	// recursions per theta run
+	private int recursionsPerTheta;
 
 	// total time of algorithm
 	private long totalTime;
 
 	private int rankingStrategy;
 
-	long timeLimit;
+	// time limit for algorithm execution
+	private long timeLimit;
 
 	// ===============================================================
 
@@ -104,21 +112,19 @@ public class DurableTopkMatching {
 		Map<Integer, Set<Node>> initC;
 		timeLimit = System.currentTimeMillis();
 
-		// to start counting the time
-		Main.TIME = System.currentTimeMillis();
-
 		topkMatches = new PriorityQueue<Match>(11, new MatchComparator(false));
 		Rank = new HashMap<>();
 
+		// if TiPLa index is activated use the path filtering
 		if (Config.TIPLA_ENABLED)
 			filterCandidatesByPath(lvg, pg, iQ);
 		else
 			filterCandidates(lvg, pg, iQ);
 
 		TreeMap<Integer, Set<Node>> ranking;
-		NavigableMap<Integer, Set<Node>> submap;
 		int sc, pn_id;
 
+		// for each pattern node
 		for (PatternNode p : pg.getNodes()) {
 
 			ranking = Rank.get(p.getID());
@@ -129,25 +135,53 @@ public class DurableTopkMatching {
 
 				// write no matches
 				writeTopMatches();
-
 				return;
 			}
 
-			sc = ranking.lastKey();
+			// zero ranking
+			if (rankingStrategy == Config.ZERO_RANKING) {
+				threshold = 2;
+				continue;
+			} else if (rankingStrategy == Config.ADAPTIVE_RANKING) {
+				int cand = 0;
 
-			if (threshold > sc)
-				threshold = sc;
+				// from highest key to lowest in ranking
+				for (int th : ranking.descendingKeySet()) {
+					cand += ranking.get(th).size();
+
+					// there should be at least k candidates until th
+					if (cand >= Config.K && threshold > th) {
+						threshold = th;
+						break;
+					}
+				}
+			} else {
+				sc = ranking.lastKey();
+
+				if (threshold > sc)
+					threshold = sc;
+			}
+		}
+
+		// max ranking
+		if (rankingStrategy != Config.ZERO_RANKING) {
+			matchesFound = new HashSet<>();
+			durationMaxRanking = new HashSet<>();
+
+			// when there are not k candidates
+			if (rankingStrategy == Config.ADAPTIVE_RANKING && threshold > Config.MAXIMUM_INTERVAL)
+				threshold = 2;
+
+			// store which threshold has been chosen
+			durationMaxRanking.add(threshold);
+			checkedTheta = threshold;
 		}
 
 		TreeMap<Integer, Set<Node>> tree;
+		NavigableMap<Integer, Set<Node>> submap;
 
-		// default ranking is running
-		if (rankingStrategy == Config.ZERO_RANKING)
-			threshold = 2;
-		else {
-			matchesFound = new HashSet<>();
-			durationMaxRanking = new HashSet<>();
-		}
+		canDSize = Integer.MAX_VALUE;
+		Set<Node> c;
 
 		while (threshold > 1) {
 
@@ -156,27 +190,32 @@ public class DurableTopkMatching {
 			for (Entry<Integer, TreeMap<Integer, Set<Node>>> entry : Rank.entrySet()) {
 				pn_id = entry.getKey();
 				tree = entry.getValue();
-				initC.put(pn_id, new HashSet<>());
+				System.out.println(tree.keySet());
+
+				c = new HashSet<>();
+				initC.put(pn_id, c);
 
 				submap = tree.subMap(tree.ceilingKey(threshold), true, tree.lastKey(), true);
 
-				for (Entry<Integer, Set<Node>> entry1 : submap.entrySet())
-					initC.get(pn_id).addAll(entry1.getValue());
+				for (Entry<Integer, Set<Node>> en : submap.entrySet())
+					c.addAll(en.getValue());
+
+				// store the smaller candidate size
+				if (canDSize > c.size())
+					canDSize = c.size();
 			}
 
-			if (rankingStrategy != Config.ZERO_RANKING)
-				System.out.print("Algoterm: " + threshold + "\tCan_size: " + initC.get(0).size());
-
+			System.out.print("Threshold: " + threshold + "\tCan_size: " + initC.get(0).size());
 			sizeOfRank++;
 
 			initC = DUALSIM(initC);
 
 			try {
-				tempRec = 0;
+				recursionsPerTheta = 0;
 				searchPattern(initC, 0);
-				System.out.print("\tRecursiveCalls: " + tempRec + "\n");
+				System.out.print("\tRecursions: " + recursionsPerTheta + "\n");
 			} catch (Exception e) {
-				System.out.println("\nHAVE A LOOK: " + e.getMessage());
+				System.out.println("\nError: " + e.getMessage());
 			}
 
 			// topk matches found
@@ -184,8 +223,8 @@ public class DurableTopkMatching {
 				break;
 
 			// get new threshold
-			if (rankingStrategy == Config.HALFWAY_RANKING)
-				threshold = getHalfwayThreshold();
+			if (rankingStrategy == Config.ADAPTIVE_RANKING)
+				threshold = getAdaptiveThreshold();
 			else if (rankingStrategy == Config.MAX_RANKING)
 				threshold = getMaxThreshold();
 		}
@@ -195,35 +234,49 @@ public class DurableTopkMatching {
 	}
 
 	/**
-	 * Compute the next threshold based on halfway ranking TODO halfway for topk
-	 * is not done
+	 * Compute the next threshold based on adaptive ranking
 	 * 
 	 * @return
 	 */
-	private int getHalfwayThreshold() {
-		int sc, oldT = threshold;
+	private int getAdaptiveThreshold() {
+		int threshold = checkedTheta;
 		TreeMap<Integer, Set<Node>> ranking;
+		NavigableMap<Integer, Set<Node>> submap;
 
-		// lkl
+		int prevS = (int) (canDSize + Config.CP * canDSize);
+		canDSize = Integer.MAX_VALUE;
+
 		for (PatternNode p : pg.getNodes()) {
+
 			ranking = Rank.get(p.getID());
+			submap = ranking.subMap(ranking.firstKey(), true, ranking.floorKey(threshold) - 1, true);
 
-			if (ranking.floorKey(threshold) == null)
-				continue;
+			int cand = 0;
 
-			sc = ranking.floorKey(threshold);
+			// from highest key to lowest in ranking
+			for (int th : submap.descendingKeySet()) {
+				cand += submap.get(th).size();
 
-			if (threshold > sc)
-				threshold = sc;
+				// there should be at least k candidates until th
+				if (cand >= prevS) {
+					threshold = th;
+
+					if (canDSize > cand)
+						canDSize = cand;
+
+					break;
+				}
+			}
 		}
 
-		// if the min duration in heap is equal to threshold or is
-		// reduce the new threshold by one
-		if ((!topkMatches.isEmpty() && threshold == topkMatches.peek().getDuration()) || oldT == threshold)
-			threshold--;
+		// if threshold has been already checked
+		while (durationMaxRanking.contains(threshold)) {
+			threshold -= Math.round(Config.ADAPTIVE_THETA * threshold);
+		}
 
 		// store threshold that have been analyzed
 		durationMaxRanking.add(threshold);
+		checkedTheta = threshold;
 
 		return threshold;
 	}
@@ -234,8 +287,9 @@ public class DurableTopkMatching {
 	 * @return
 	 */
 	private int getMaxThreshold() {
-		int oldT = threshold, sc;
+		int sc;
 		TreeMap<Integer, Set<Node>> ranking;
+		threshold = checkedTheta;
 
 		for (PatternNode p : pg.getNodes()) {
 			ranking = Rank.get(p.getID());
@@ -250,13 +304,14 @@ public class DurableTopkMatching {
 				threshold = sc;
 		}
 
-		// if the min duration in heap is equal to threshold or is
-		// reduce the new threshold by one
-		if ((!topkMatches.isEmpty() && threshold == topkMatches.peek().getDuration()) || oldT == threshold)
+		// if threshold has been already checked
+		while (durationMaxRanking.contains(threshold)) {
 			threshold--;
+		}
 
 		// store threshold that have been analyzed
 		durationMaxRanking.add(threshold);
+		checkedTheta = threshold;
 
 		return threshold;
 	}
@@ -271,7 +326,7 @@ public class DurableTopkMatching {
 	private void searchPattern(Map<Integer, Set<Node>> c, int depth) throws Exception {
 		// increase the counters for recursions
 		totalRecursions++;
-		tempRec++;
+		recursionsPerTheta++;
 
 		if (System.currentTimeMillis() > (timeLimit + Config.TIME_LIMIT * 1000)) {
 			throw new Exception("Reach time limit");
@@ -360,8 +415,8 @@ public class DurableTopkMatching {
 		// duration of match
 		int duration = inter.cardinality(), minDuration;
 
-		// if ranking strategy is max
-		if (rankingStrategy == Config.MAX_RANKING) {
+		// if ranking strategy is max or adaptive
+		if (rankingStrategy == Config.MAX_RANKING || rankingStrategy == Config.ADAPTIVE_RANKING) {
 
 			if (topkMatches.size() < k) {
 
@@ -370,6 +425,8 @@ public class DurableTopkMatching {
 
 				// add the sign
 				matchesFound.add(matchSign);
+
+				durationMaxRanking.add(threshold);
 
 			} else if (topkMatches.size() == k) {
 
@@ -386,18 +443,31 @@ public class DurableTopkMatching {
 					// add the sign
 					matchesFound.add(matchSign);
 
-					// update threhshold
+					// update threshold
 					threshold = topkMatches.peek().getDuration();
 
 					durationMaxRanking.add(threshold);
 
+					// update min checkedTheta
+					if (checkedTheta > threshold)
+						checkedTheta = threshold;
+
 				} else if (duration == minDuration) {
 
-					// set the threshold to look for matches with duration >=
-					// duration of min element in heap (if it is not already
-					// checked)
-					if (durationMaxRanking.contains(++duration))
-						threshold = duration;
+					if (rankingStrategy == Config.ADAPTIVE_RANKING) {
+						threshold = duration + 1;
+
+						// if threshold has been already checked
+						while (durationMaxRanking.contains(threshold)) {
+							threshold++;
+						}
+
+					} else {
+						// set the threshold to look for matches with duration
+						// >=
+						// duration of min element in heap
+						threshold = duration + 1;
+					}
 				}
 			}
 		} else if (rankingStrategy == Config.ZERO_RANKING) { // ranking strategy
@@ -752,8 +822,7 @@ public class DurableTopkMatching {
 						continue;
 				} else if (Config.CTINLA_ENABLED) {
 					found = true;
-					
-					Map<Integer, Integer> cL;
+					Map<Integer, Integer> cT;
 
 					// for each r
 					for (int r = 0; r < Config.CTINLA_R; r++) {
@@ -762,14 +831,14 @@ public class DurableTopkMatching {
 
 							// if there is not a neighbor with that label
 							// remove it
-							if ((cL = n.getTiNLa_C(r, l.getKey())) == null) {
+							if ((cT = n.getCTiNLa(r, l.getKey())) == null) {
 								found = false;
 								it.remove();
 								break;
 							} else { // otherwise get the lifespan and intersect
 
-								lifespan.and(n.getTiNLa_C(r, l.getKey(), l.getValue(), lifespan));
-									
+								lifespan = n.getCTiNLa(cT, l.getValue(), lifespan);
+
 								if (lifespan.isEmpty()) {
 									found = false;
 									it.remove();
@@ -777,6 +846,7 @@ public class DurableTopkMatching {
 								}
 							}
 						}
+
 						if (!found)
 							break;
 					}
@@ -909,7 +979,7 @@ public class DurableTopkMatching {
 	 * @throws IOException
 	 */
 	private void writeTopMatches() throws IOException {
-		totalTime = (System.currentTimeMillis() - Main.TIME);
+		totalTime = (System.currentTimeMillis() - timeLimit);
 
 		String outputPath = Config.PATH_OUTPUT + "pq=" + pg.getID() + "_";
 
@@ -925,8 +995,8 @@ public class DurableTopkMatching {
 		else
 			outputPath += "tila_";
 
-		if (rankingStrategy == Config.HALFWAY_RANKING)
-			outputPath += "r=h";
+		if (rankingStrategy == Config.ADAPTIVE_RANKING)
+			outputPath += "r=a";
 		else if (rankingStrategy == Config.MAX_RANKING)
 			outputPath += "r=m";
 		else if (rankingStrategy == Config.ZERO_RANKING)

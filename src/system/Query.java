@@ -61,8 +61,8 @@ public class Query {
 					if (Config.MAX_RANKING_ENABLED)					
 						callables.add(setCallableDurQ(lvg, pg, iQ, Config.MAX_RANKING));
 					
-					if (Config.HALFWAY_RANKING_ENABLED)
-						callables.add(setCallableDurQ(lvg, pg, iQ, Config.HALFWAY_RANKING));
+					if (Config.ADAPTIVE_RANKING_ENABLED)
+						callables.add(setCallableDurQ(lvg, pg, iQ, Config.ADAPTIVE_RANKING));
 				
 					if (Config.ZERO_RANKING_ENABLED)
 						callables.add(setCallableDurQ(lvg, pg, iQ, Config.ZERO_RANKING));			
@@ -73,14 +73,16 @@ public class Query {
 				
 				if (Config.RUN_TOPK_QUERIES) {
 					List<Callable<?>> callables = new ArrayList<>();
-					new DurableTopkMatching(lvg, pg, iQ, Config.CONTIGUOUS_MATCHES, Config.K, Config.MAX_RANKING);
+					
+					//FIXME for testing purpose
+					new DurableTopkMatching(lvg, pg, iQ, Config.CONTIGUOUS_MATCHES, Config.K, Config.ADAPTIVE_RANKING);
 					System.exit(0);
 
 					if (Config.MAX_RANKING_ENABLED)					
 						callables.add(setCallableTopkQ(lvg, pg, iQ, Config.MAX_RANKING));
 					
-					if (Config.HALFWAY_RANKING_ENABLED)
-						callables.add(setCallableTopkQ(lvg, pg, iQ, Config.HALFWAY_RANKING));
+					if (Config.ADAPTIVE_RANKING_ENABLED)
+						callables.add(setCallableTopkQ(lvg, pg, iQ, Config.ADAPTIVE_RANKING));
 				
 					if (Config.ZERO_RANKING_ENABLED)
 						callables.add(setCallableTopkQ(lvg, pg, iQ, Config.ZERO_RANKING));			

@@ -23,7 +23,6 @@ import graph.version.Graph;
 import graph.version.Node;
 import graph.version.loader.LoaderDBLP;
 import system.Config;
-import system.Main;
 
 /**
  * DurableMatching Algorithm class
@@ -60,16 +59,18 @@ public class DurableMatching {
 	// size of rank
 	private int sizeOfRank = 0;
 
-	// recursions per run
-	private int tempRec;
+	// recursions per theta run
+	private int recursionsPerTheta;
 
 	// total time of algorithm
 	private long totalTime;
 
 	private int rankingStrategy;
 
+	// time limit for algorithm execution
+	private long timeLimit;
+
 	// ===============================================================
-	long start;
 
 	/**
 	 * Constructor
@@ -90,14 +91,12 @@ public class DurableMatching {
 
 		// initial C
 		Map<Integer, Set<Node>> initC;
-		start = System.currentTimeMillis();
-
-		// to start counting the time
-		Main.TIME = System.currentTimeMillis();
+		timeLimit = System.currentTimeMillis();
 
 		topMatches = new HashSet<Match>();
 		Rank = new HashMap<>();
 
+		// if TiPLa index is activated use the path filtering
 		if (Config.TIPLA_ENABLED)
 			filterCandidatesByPath(lvg, pg, iQ);
 		else
@@ -128,10 +127,6 @@ public class DurableMatching {
 
 		TreeMap<Integer, Set<Node>> tree;
 
-		// default ranking is running
-		if (rankingStrategy == Config.ZERO_RANKING)
-			threshold = 2;
-
 		while (threshold > 1) {
 
 			initC = new HashMap<>();
@@ -147,18 +142,17 @@ public class DurableMatching {
 					initC.get(pn_id).addAll(entry1.getValue());
 			}
 
-			System.out.print("Algoterm: " + threshold + "\tCan_size: " + initC.get(0).size());
-
+			System.out.print("Threshold: " + threshold + "\tCan_size: " + initC.get(0).size());
 			sizeOfRank++;
 
 			initC = DUALSIM(initC);
 
 			try {
-				tempRec = 0;
+				recursionsPerTheta = 0;
 				searchPattern(initC, 0);
-				System.out.print("\tTermRec: " + tempRec + "\n");
+				System.out.print("\tRecursions: " + recursionsPerTheta + "\n");
 			} catch (Exception e) {
-				System.out.println("\nHAVE A LOOK: " + e.getMessage());
+				System.out.println("\nError: " + e.getMessage());
 			}
 
 			// matches found
@@ -166,10 +160,10 @@ public class DurableMatching {
 				break;
 
 			// get new threshold
-			if (rankingStrategy == Config.HALFWAY_RANKING)
-				threshold = getBinaryBasedThreshold();
+			if (rankingStrategy == Config.ADAPTIVE_RANKING)
+				threshold = getAdaptiveThreshold();
 			else if (rankingStrategy == Config.MAX_RANKING)
-				threshold = getMinMaxBasedThreshold();
+				threshold = getMaxThreshold();
 		}
 
 		// write matches
@@ -181,14 +175,11 @@ public class DurableMatching {
 	 * 
 	 * @return
 	 */
-	private int getBinaryBasedThreshold() {
+	private int getAdaptiveThreshold() {
 		int sc, oldT = threshold;
 		TreeMap<Integer, Set<Node>> ranking;
 
-		threshold /= 2 + 1;
-
-		if (oldT == threshold)
-			return 1;
+		threshold -= Math.round(Config.ADAPTIVE_THETA * threshold);
 
 		for (PatternNode p : pg.getNodes()) {
 			ranking = Rank.get(p.getID());
@@ -209,11 +200,11 @@ public class DurableMatching {
 	}
 
 	/**
-	 * Get next threshold based on minMax ranking
+	 * Get next threshold based on max ranking
 	 * 
 	 * @return
 	 */
-	private int getMinMaxBasedThreshold() {
+	private int getMaxThreshold() {
 		int oldT = threshold, sc;
 		TreeMap<Integer, Set<Node>> ranking;
 
@@ -245,12 +236,12 @@ public class DurableMatching {
 	private void searchPattern(Map<Integer, Set<Node>> c, int depth) throws Exception {
 		// increase the counters for recursions
 		totalRecursions++;
-		tempRec++;
+		recursionsPerTheta++;
 
-		if (System.currentTimeMillis() > (start + Config.TIME_LIMIT * 1000)) {
+		if (System.currentTimeMillis() > (timeLimit + Config.TIME_LIMIT * 1000)) {
 			throw new Exception("Reach time limit");
 		} else if (topMatches.size() == Config.MAX_MATCHES
-				&& (rankingStrategy == Config.MAX_RANKING || rankingStrategy == Config.HALFWAY_RANKING)) {
+				&& (rankingStrategy == Config.MAX_RANKING || rankingStrategy == Config.ADAPTIVE_RANKING)) {
 			// max matches limit can be used only in the below strategies
 			// zero strategy may find more matches than the limit that are not
 			// the best solution at the current step
@@ -675,6 +666,7 @@ public class DurableMatching {
 						continue;
 				} else if (Config.CTINLA_ENABLED) {
 					found = true;
+					Map<Integer, Integer> cT;
 
 					// for each r
 					for (int r = 0; r < Config.CTINLA_R; r++) {
@@ -683,30 +675,22 @@ public class DurableMatching {
 
 							// if there is not a neighbor with that label
 							// remove it
-							if (n.getTiNLa_C(r, l.getKey()) == null) {
+							if ((cT = n.getCTiNLa(r, l.getKey())) == null) {
 								found = false;
 								it.remove();
 								break;
 							} else { // otherwise get the lifespan and intersect
-								lifespan.and(n.getTiNLa_C(r, l.getKey()));
 
-								// check if the neighborhood lifespan
-								// intersection
-								// is not empty
+								lifespan = n.getCTiNLa(cT, l.getValue(), lifespan);
+
 								if (lifespan.isEmpty()) {
 									found = false;
 									it.remove();
 									break;
-								} else {
-									lifespan.and(n.getTiNLa_C(r, l.getKey(), l.getValue(), lifespan));
-									if (lifespan.isEmpty()) {
-										found = false;
-										it.remove();
-										break;
-									}
 								}
 							}
 						}
+
 						if (!found)
 							break;
 					}
@@ -837,7 +821,7 @@ public class DurableMatching {
 	 * @throws IOException
 	 */
 	private void writeTopMatches() throws IOException {
-		totalTime = (System.currentTimeMillis() - Main.TIME);
+		totalTime = (System.currentTimeMillis() - timeLimit);
 
 		String outputPath = Config.PATH_OUTPUT + "pq=" + pg.getID() + "_";
 
@@ -853,8 +837,8 @@ public class DurableMatching {
 		else
 			outputPath += "tila_";
 
-		if (rankingStrategy == Config.HALFWAY_RANKING)
-			outputPath += "r=h";
+		if (rankingStrategy == Config.ADAPTIVE_RANKING)
+			outputPath += "r=a";
 		else if (rankingStrategy == Config.MAX_RANKING)
 			outputPath += "r=m";
 		else if (rankingStrategy == Config.ZERO_RANKING)

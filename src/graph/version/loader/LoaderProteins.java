@@ -60,6 +60,7 @@ public class LoaderProteins {
 			if (line.contains("#")) {
 				time++;
 				sizeOfNodes = Integer.parseInt(br.readLine());
+				nID = 0;
 				nodes = true;
 				edges = false;
 				continue;

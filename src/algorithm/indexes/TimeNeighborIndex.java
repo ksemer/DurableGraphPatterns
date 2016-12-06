@@ -29,8 +29,7 @@ public class TimeNeighborIndex implements Serializable {
 	public TimeNeighborIndex() {
 		if (Config.TINLA_ENABLED)
 			TiNLa = new HashMap<>();
-
-		if (Config.CTINLA_ENABLED)
+		else if (Config.CTINLA_ENABLED)
 			CTiNLa = new HashMap<>();
 	}
 
@@ -50,8 +49,7 @@ public class TimeNeighborIndex implements Serializable {
 	 * @param label
 	 * @return
 	 */
-	public Map<Integer, Integer> getCTiNLa(int label) {
-		System.out.println(CTiNLa.keySet());
+	public Map<Integer, Integer> getLabel(int label) {
 		return CTiNLa.get(label);
 	}
 
