@@ -593,7 +593,8 @@ public class DurableMatching {
 		}
 
 		// create TiNLa & CTiNLa indexes
-		pg.createTimeNeighborIndex();
+		if (Config.TINLA_ENABLED || Config.CTINLA_ENABLED)
+			pg.createTimeNeighborIndex();
 
 		boolean found;
 		BitSet lifespan;

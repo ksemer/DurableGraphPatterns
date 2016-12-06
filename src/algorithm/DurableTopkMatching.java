@@ -241,13 +241,19 @@ public class DurableTopkMatching {
 		NavigableMap<Integer, Set<Node>> submap;
 
 		int threshold = checkedTheta, cand, prevS = (int) (canDSize + Config.CP * canDSize), prevC = canDSize;
+		Integer from, to;
 		canDSize = Integer.MAX_VALUE;
 
 		for (PatternNode p : pg.getNodes()) {
 
 			cand = 0;
 			ranking = Rank.get(p.getID());
-			submap = ranking.subMap(ranking.firstKey(), true, ranking.floorKey(threshold), false);
+			from = ranking.firstKey();
+
+			if ((to = ranking.floorKey(threshold)) == null)
+				submap = ranking.subMap(from, true, from, true);
+			else
+				submap = ranking.subMap(from, true, to, false);
 
 			// from highest key to lowest in ranking
 			for (int th : submap.descendingKeySet()) {
@@ -748,7 +754,8 @@ public class DurableTopkMatching {
 		}
 
 		// create TiNLa & CTiNLa indexes
-		pg.createTimeNeighborIndex();
+		if (Config.TINLA_ENABLED || Config.CTINLA_ENABLED)
+			pg.createTimeNeighborIndex();
 
 		boolean found;
 		BitSet lifespan;

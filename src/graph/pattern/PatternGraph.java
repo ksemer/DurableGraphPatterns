@@ -111,8 +111,6 @@ public class PatternGraph {
 	 * Create TiNLa and CTiNLa indexes
 	 */
 	public void createTimeNeighborIndex() {
-		if (!Config.TINLA_ENABLED && !Config.CTINLA_ENABLED)
-			return;
 
 		int R = -1;
 		Integer in;
@@ -122,49 +120,46 @@ public class PatternGraph {
 		else if (Config.CTINLA_ENABLED)
 			R = Config.CTINLA_R;
 
-		// for each pattern node
-		for (PatternNode pn : nodes) {
+		// for each r
+		for (int r = 0; r < R; r++) {
 
-			Set<PatternNode> visited = new HashSet<>();
-			Set<PatternNode> temp_nodes = new HashSet<>();
-			Set<PatternNode> adjacency = new HashSet<>(pn.getAdjacency());
-
-			// for each r
-			for (int r = 0; r < R; r++) {
+			// for each pattern node
+			for (PatternNode pn : nodes) {
 
 				// for each node in adjacency or radius r
-				for (PatternNode trg : adjacency) {
-
-					// for avoiding cycles
-					if (R > 2 && visited.contains(trg))
-						continue;
+				for (PatternNode trg : pn.getAdjacency()) {
 
 					if (Config.TINLA_ENABLED) {
 
-						// update pn label adjacency
-						pn.getLabelAdjacency(r).add(trg.getLabel());
+						// update TiNLa in radius = 1
+						if (r == 0)
+							pn.getLabelAdjacency(r).add(trg.getLabel());
+						else // update TiNLa in radius > 1
+							pn.getLabelAdjacency(r).addAll(trg.getLabelAdjacency(r - 1));
+
 					} else if (Config.CTINLA_ENABLED) {
 
-						// update pn's label CTiNLa index
-						if ((in = pn.getLabelAdjacency_C(r).get(trg.getLabel())) == null)
-							pn.getLabelAdjacency_C(r).put(trg.getLabel(), 1);
-						else
-							pn.getLabelAdjacency_C(r).put(trg.getLabel(), in.intValue() + 1);
-					}
+						// update CTiNLa for radius = 1
+						if (r == 0) {
+							if ((in = pn.getLabelAdjacency_C(r).get(trg.getLabel())) == null)
+								pn.getLabelAdjacency_C(r).put(trg.getLabel(), 1);
+							else
+								pn.getLabelAdjacency_C(r).put(trg.getLabel(), in.intValue() + 1);
 
-					// store in temp set the nodes of the next hop
-					temp_nodes.addAll(trg.getAdjacency());
+						} else {
 
-					if (R > 2) {
-						// add node to visited set
-						visited.add(trg);
+							// update CTiNLa for radius > 1
+							for (int label : trg.getLabelAdjacency_C(r - 1).keySet()) {
+
+								if ((in = pn.getLabelAdjacency_C(r).get(label)) == null)
+									pn.getLabelAdjacency_C(r).put(label, trg.getLabelAdjacency_C(r - 1).get(label));
+								else
+									pn.getLabelAdjacency_C(r).put(label,
+											in.intValue() + trg.getLabelAdjacency_C(r - 1).get(label));
+							}
+						}
 					}
 				}
-
-				// clear and set adjacency to show the next hop
-				adjacency.clear();
-				adjacency.addAll(temp_nodes);
-				temp_nodes.clear();
 			}
 		}
 	}
