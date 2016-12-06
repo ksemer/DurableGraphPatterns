@@ -15,7 +15,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
-import algorithm.indexes.PatternPathIndex;
 import graph.pattern.PatternGraph;
 import graph.pattern.PatternNode;
 import graph.version.Edge;
@@ -593,7 +592,8 @@ public class DurableMatching {
 			Rank.put(pn.getID(), new TreeMap<>());
 		}
 
-		pg.createLabelAdjacency();
+		// create TiNLa & CTiNLa indexes
+		pg.createTimeNeighborIndex();
 
 		boolean found;
 		BitSet lifespan;
@@ -739,7 +739,7 @@ public class DurableMatching {
 		Map<PatternNode, Map<Integer, nodeScore>> score = new HashMap<>();
 
 		// create pattern path index
-		Map<Integer, Set<String>> patternPathIndex = new PatternPathIndex(Config.TIPLA_MAX_DEPTH).createPathIndex(pg);
+		pg.createPathIndex();
 
 		// initialize
 		for (PatternNode pn : pg.getNodes()) {
@@ -758,7 +758,7 @@ public class DurableMatching {
 				Set<Node> intersection = null;
 
 				// for all pattern node pn paths
-				for (String path : patternPathIndex.get(pn.getID())) {
+				for (String path : pg.getTiPLa(pn.getID())) {
 
 					// get the candidates from the time path index
 					if ((currentCandidates = lvg.getTiPLa().get(t).get(path)) != null) {
@@ -846,6 +846,7 @@ public class DurableMatching {
 
 		FileWriter w = new FileWriter(outputPath);
 		w.write("Total matches: " + topMatches.size() + "\n");
+		w.write("Pattern Graph: " + pg.getID() + "\n");
 		w.write("Recursive Time: " + totalTime + " (ms)\n");
 		w.write("sizeOfRank: " + sizeOfRank + "\n");
 		w.write("Total Recursions: " + totalRecursions + "\n");

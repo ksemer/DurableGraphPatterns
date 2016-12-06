@@ -156,7 +156,7 @@ public class Graph implements Serializable {
 	 * @throws IOException
 	 */
 	public void createTiPLa() throws IOException {
-		this.TiPLa = new TimePathIndex(Config.TIPLA_MAX_DEPTH).createPathIndex(this);
+		this.TiPLa = new TimePathIndex().createPathIndex(this);
 	}
 
 	/**

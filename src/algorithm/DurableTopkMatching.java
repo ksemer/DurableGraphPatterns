@@ -21,7 +21,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
-import algorithm.indexes.PatternPathIndex;
 import graph.pattern.PatternNode;
 import graph.version.Edge;
 import graph.version.Node;
@@ -190,7 +189,6 @@ public class DurableTopkMatching {
 			for (Entry<Integer, TreeMap<Integer, Set<Node>>> entry : Rank.entrySet()) {
 				pn_id = entry.getKey();
 				tree = entry.getValue();
-				System.out.println(tree.keySet());
 
 				c = new HashSet<>();
 				initC.put(pn_id, c);
@@ -239,19 +237,17 @@ public class DurableTopkMatching {
 	 * @return
 	 */
 	private int getAdaptiveThreshold() {
-		int threshold = checkedTheta;
 		TreeMap<Integer, Set<Node>> ranking;
 		NavigableMap<Integer, Set<Node>> submap;
 
-		int prevS = (int) (canDSize + Config.CP * canDSize);
+		int threshold = checkedTheta, cand, prevS = (int) (canDSize + Config.CP * canDSize), prevC = canDSize;
 		canDSize = Integer.MAX_VALUE;
 
 		for (PatternNode p : pg.getNodes()) {
 
+			cand = 0;
 			ranking = Rank.get(p.getID());
-			submap = ranking.subMap(ranking.firstKey(), true, ranking.floorKey(threshold) - 1, true);
-
-			int cand = 0;
+			submap = ranking.subMap(ranking.firstKey(), true, ranking.floorKey(threshold), false);
 
 			// from highest key to lowest in ranking
 			for (int th : submap.descendingKeySet()) {
@@ -268,6 +264,8 @@ public class DurableTopkMatching {
 				}
 			}
 		}
+
+		canDSize += prevC;
 
 		// if threshold has been already checked
 		while (durationMaxRanking.contains(threshold)) {
@@ -749,7 +747,8 @@ public class DurableTopkMatching {
 			Rank.put(pn.getID(), new TreeMap<>());
 		}
 
-		pg.createLabelAdjacency();
+		// create TiNLa & CTiNLa indexes
+		pg.createTimeNeighborIndex();
 
 		boolean found;
 		BitSet lifespan;
@@ -897,7 +896,7 @@ public class DurableTopkMatching {
 		Map<PatternNode, Map<Integer, nodeScore>> score = new HashMap<>();
 
 		// create pattern path index
-		Map<Integer, Set<String>> patternPathIndex = new PatternPathIndex(Config.TIPLA_MAX_DEPTH).createPathIndex(pg);
+		pg.createPathIndex();
 
 		// initialize
 		for (PatternNode pn : pg.getNodes()) {
@@ -916,7 +915,7 @@ public class DurableTopkMatching {
 				Set<Node> intersection = null;
 
 				// for all pattern node pn paths
-				for (String path : patternPathIndex.get(pn.getID())) {
+				for (String path : pg.getTiPLa(pn.getID())) {
 
 					// get the candidates from the time path index
 					if ((currentCandidates = lvg.getTiPLa().get(t).get(path)) != null) {
@@ -1004,6 +1003,7 @@ public class DurableTopkMatching {
 
 		FileWriter w = new FileWriter(outputPath);
 		w.write("Top-" + k + " matches\n");
+		w.write("Pattern Graph: " + pg.getID() + "\n");
 		w.write("Total matches: " + topkMatches.size() + "\n");
 		w.write("Recursive Time: " + totalTime + " (ms)\n");
 		w.write("sizeOfRank: " + sizeOfRank + "\n");

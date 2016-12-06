@@ -30,7 +30,6 @@ public class TimePathIndex implements Serializable {
 
 	// ====================================================================
 	private Map<Integer, Map<String, Set<Node>>> timePathIndexWT;
-	private int max_depth;
 	private Set<Node> set;
 	// ====================================================================
 
@@ -40,8 +39,7 @@ public class TimePathIndex implements Serializable {
 	 * @param max_depth
 	 * @throws Exception
 	 */
-	public TimePathIndex(int max_depth) {
-		this.max_depth = max_depth;
+	public TimePathIndex() {
 		this.timePathIndexWT = new HashMap<>();
 
 		for (int i = 0; i < Config.MAXIMUM_INTERVAL; i++)
@@ -60,7 +58,7 @@ public class TimePathIndex implements Serializable {
 		System.out.println("Time Path Index is running");
 		long time = System.currentTimeMillis();
 
-		for (int depth = max_depth; depth >= 1; depth--) {
+		for (int depth = Config.TIPLA_MAX_DEPTH; depth >= 1; depth--) {
 			for (Node n : g.getNodes()) {
 				traversePath(n, depth);
 			}
@@ -168,12 +166,9 @@ public class TimePathIndex implements Serializable {
 	private void rec_labelComp(List<Node> path, Node src, BitSet life, String label, int depth) {
 		Node n = path.get(depth);
 		BitSet lifespan;
+		String Path;
 
-		for (int l = 0; l < Config.SIZE_OF_LABELS; l++) {
-
-			// if nodes has label l
-			if (n.getLabel(l) == null)
-				continue;
+		for (int l : n.getLabels().keySet()) {
 
 			lifespan = (BitSet) life.clone();
 			lifespan.and(n.getLabel(l));
@@ -185,7 +180,7 @@ public class TimePathIndex implements Serializable {
 				else {
 					// i is the next label in path
 					// we use integers to denote labels
-					String Path = label + "|" + l;
+					Path = label + "|" + l;
 
 					for (Iterator<Integer> it = lifespan.stream().iterator(); it.hasNext();) {
 						int t = it.next();
