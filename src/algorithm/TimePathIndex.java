@@ -18,6 +18,7 @@ import graph.version.Edge;
 import graph.version.Graph;
 import graph.version.Node;
 import system.Config;
+import utils.Storage;
 
 /**
  * TiPLa
@@ -86,7 +87,19 @@ public class TimePathIndex implements Serializable {
 			}
 		}
 
-		System.out.println("TiPLa time: " + (System.currentTimeMillis() - time) / 1000 + " (sec)");
+		if (Config.SHOW_MEMORY) {
+			Runtime runtime = Runtime.getRuntime();
+
+			// Run the garbage collector
+			runtime.gc();
+
+			// Calculate the used memory
+			long memory = runtime.totalMemory() - runtime.freeMemory();
+
+			System.out.println("Used memory with (TiPLa): " + Storage.bytesToMegabytes(memory));
+		}
+
+		System.out.println("TiPLa time: " + (System.currentTimeMillis() - time) + " (ms)");
 
 		return timePathIndexWT;
 	}

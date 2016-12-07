@@ -114,70 +114,28 @@ public class LoaderProteins {
 		Config.SIZE_OF_LABELS = labels.size();
 		System.out.println("Labels: " + labels.size());
 
-		System.out.println("TiLa time: " + (System.currentTimeMillis() - executionTime) + " (ms)");
+		System.out.println("ViLa time: " + (System.currentTimeMillis() - executionTime) + " (ms)");
 
-		long memory;
-		Runtime runtime = Runtime.getRuntime();
+		// For displaying memory usage
+		if (Config.SHOW_MEMORY) {
+			Runtime runtime = Runtime.getRuntime();
 
-		if (Config.TINLA_ENABLED || Config.CTINLA_ENABLED) {
+			// Run the garbage collector
+			runtime.gc();
 
-			// For displaying memory usage
-			if (Config.SHOW_MEMORY) {
+			// Calculate the used memory
+			long memory = runtime.totalMemory() - runtime.freeMemory();
 
-				// Run the garbage collector
-				runtime.gc();
-
-				// Calculate the used memory
-				memory = runtime.totalMemory() - runtime.freeMemory();
-
-				if (Config.TINLA_ENABLED)
-					System.out.println("Used memory without (TiNLa): " + Storage.bytesToMegabytes(memory));
-				else if (Config.CTINLA_ENABLED)
-					System.out.println("Used memory without (CTiNLa): " + Storage.bytesToMegabytes(memory));
-			}
-
-			lvg.createTimeNeighborIndex();
-
-			if (Config.SHOW_MEMORY) {
-
-				// Run the garbage collector
-				runtime.gc();
-
-				// Calculate the used memory
-				memory = runtime.totalMemory() - runtime.freeMemory();
-
-				if (Config.TINLA_ENABLED)
-					System.out.println("Used memory with (TiNLa): " + Storage.bytesToMegabytes(memory));
-				else if (Config.CTINLA_ENABLED)
-					System.out.println("Used memory with (CTiNLa): " + Storage.bytesToMegabytes(memory));
-			}
-		} else if (Config.TIPLA_ENABLED) {
-
-			if (Config.SHOW_MEMORY) {
-				// Run the garbage collector
-				runtime.gc();
-
-				// Calculate the used memory
-				memory = runtime.totalMemory() - runtime.freeMemory();
-
-				System.out.println("Used memory without (TiPLa): " + Storage.bytesToMegabytes(memory));
-			}
-
-			lvg.createTiPLa();
-
-			if (Config.SHOW_MEMORY) {
-
-				// Run the garbage collector
-				runtime.gc();
-
-				// Calculate the used memory
-				memory = runtime.totalMemory() - runtime.freeMemory();
-
-				System.out.println("Used memory with (TiPLa): " + Storage.bytesToMegabytes(memory));
-			}
+			System.out.println("Used memory with ViLa: " + Storage.bytesToMegabytes(memory));
 		}
 
-		System.out.println("Loadtime of lvg(all): " + (System.currentTimeMillis() - executionTime) + " (ms)");
+		if (Config.TINLA_ENABLED || Config.CTINLA_ENABLED)
+			lvg.createTimeNeighborIndex();
+
+		else if (Config.TIPLA_ENABLED)
+			lvg.createTiPLa();
+
+		System.out.println("Loadtime of all: " + (System.currentTimeMillis() - executionTime) + " (ms)");
 
 		return lvg;
 	}

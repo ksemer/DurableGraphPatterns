@@ -59,8 +59,7 @@ public class Main {
 			}
 			// for yt dataset
 			else if (dataset.contains("yt"))
-				// TODO number of changes for yt
-				lvg = new LoaderYT(9).loadDataset();
+				lvg = new LoaderYT().loadDataset();
 			// for proteins
 			else
 				lvg = new LoaderProteins().loadDataset();

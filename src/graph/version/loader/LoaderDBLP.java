@@ -68,69 +68,30 @@ public class LoaderDBLP {
 
 		// load attributes
 		loadAttributes(lvg);
-		loadNames(lvg.size());
 
-		long memory;
-		Runtime runtime = Runtime.getRuntime();
+		// For displaying memory usage
+		if (Config.SHOW_MEMORY) {
+			Runtime runtime = Runtime.getRuntime();
 
-		if (Config.TINLA_ENABLED || Config.CTINLA_ENABLED) {
+			// Run the garbage collector
+			runtime.gc();
 
-			// For displaying memory usage
-			if (Config.SHOW_MEMORY) {
-				// Run the garbage collector
-				runtime.gc();
+			// Calculate the used memory
+			long memory = runtime.totalMemory() - runtime.freeMemory();
 
-				// Calculate the used memory
-				memory = runtime.totalMemory() - runtime.freeMemory();
+			System.out.println("Used memory with ViLa: " + Storage.bytesToMegabytes(memory));
+		}
+		
+		System.out.println("ViLa time: " + (System.currentTimeMillis() - executionTime) + " (ms)");
 
-				if (Config.TINLA_ENABLED)
-					System.out.println("Used memory without (TiNLa): " + Storage.bytesToMegabytes(memory));
-				else if (Config.CTINLA_ENABLED)
-					System.out.println("Used memory without CTiNLa: " + Storage.bytesToMegabytes(memory));
-			}
-
+		if (Config.TINLA_ENABLED || Config.CTINLA_ENABLED)
 			lvg.createTimeNeighborIndex();
-
-			if (Config.SHOW_MEMORY) {
-
-				// Run the garbage collector
-				runtime.gc();
-
-				// Calculate the used memory
-				memory = runtime.totalMemory() - runtime.freeMemory();
-
-				if (Config.TINLA_ENABLED)
-					System.out.println("Used memory with (TiNLa): " + Storage.bytesToMegabytes(memory));
-				else if (Config.CTINLA_ENABLED)
-					System.out.println("Used memory with (CTiNLa): " + Storage.bytesToMegabytes(memory));
-			}
-		} else if (Config.TIPLA_ENABLED) {
-
-			if (Config.SHOW_MEMORY) {
-				// Run the garbage collector
-				runtime.gc();
-
-				// Calculate the used memory
-				memory = runtime.totalMemory() - runtime.freeMemory();
-
-				System.out.println("Used memory without (TiPLa): " + Storage.bytesToMegabytes(memory));
-			}
-
+		else if (Config.TIPLA_ENABLED)
 			lvg.createTiPLa();
 
-			if (Config.SHOW_MEMORY) {
+		System.out.println("Loadtime of all: " + (System.currentTimeMillis() - executionTime) + " (ms)");
 
-				// Run the garbage collector
-				runtime.gc();
-
-				// Calculate the used memory
-				memory = runtime.totalMemory() - runtime.freeMemory();
-
-				System.out.println("Used memory with (TiPLa): " + Storage.bytesToMegabytes(memory));
-			}
-		}
-
-		System.out.println("Loadtime of lvg(all): " + (System.currentTimeMillis() - executionTime) + " (ms)");
+		loadNames(lvg.size());
 
 		return lvg;
 	}
@@ -148,7 +109,6 @@ public class LoaderDBLP {
 		String line = null;
 		Node node;
 		int value;
-		long time = System.currentTimeMillis();
 
 		// attributes for publications count
 		if ((line = br.readLine()).contains("Publications_count")) {
@@ -224,8 +184,6 @@ public class LoaderDBLP {
 		}
 
 		br.close();
-
-		System.out.println("TiLa time: " + (System.currentTimeMillis() - time) + " (ms)");
 	}
 
 	/**

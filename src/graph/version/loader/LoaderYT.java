@@ -17,17 +17,10 @@ import utils.Storage;
  * @author ksemer
  */
 public class LoaderYT {
-	// when a label changes
-	private int numberOfchanges;
+	// when a label change value
+	// FIXME set to 9 times for our yt dataset
+	private static final int numberOfchanges = 9;
 
-	/**
-	 * Constructor
-	 * 
-	 * @param numberOfchanges
-	 */
-	public LoaderYT(int numberOfchanges) {
-		this.numberOfchanges = numberOfchanges;
-	}
 
 	/**
 	 * Create a labeled version graph in memory from a given DataSet nodeID \t
@@ -70,43 +63,27 @@ public class LoaderYT {
 		// load attributes
 		loadAttributes(lvg);
 
-		if (Config.TINLA_ENABLED || Config.CTINLA_ENABLED) {
+		// For displaying memory usage
+		if (Config.SHOW_MEMORY) {
 			Runtime runtime = Runtime.getRuntime();
 
-			long memory;
+			// Run the garbage collector
+			runtime.gc();
 
-			// For displaying memory usage
-			if (Config.SHOW_MEMORY) {
+			// Calculate the used memory
+			long memory = runtime.totalMemory() - runtime.freeMemory();
 
-				// Run the garbage collector
-				runtime.gc();
-
-				// Calculate the used memory
-				memory = runtime.totalMemory() - runtime.freeMemory();
-
-				if (Config.TINLA_ENABLED)
-					System.out.println("Used memory without (TiNLa): " + Storage.bytesToMegabytes(memory));
-				else if (Config.CTINLA_ENABLED)
-					System.out.println("Used memory without (CTiNLa): " + Storage.bytesToMegabytes(memory));
-			}
-
-			lvg.createTimeNeighborIndex();
-
-			if (Config.SHOW_MEMORY) {
-				// Run the garbage collector
-				runtime.gc();
-
-				// Calculate the used memory
-				memory = runtime.totalMemory() - runtime.freeMemory();
-
-				if (Config.TINLA_ENABLED)
-					System.out.println("Used memory with (TiNLa): " + Storage.bytesToMegabytes(memory));
-				else if (Config.CTINLA_ENABLED)
-					System.out.println("Used memory with (CTiNLa): " + Storage.bytesToMegabytes(memory));
-			}
+			System.out.println("Used memory with ViLa: " + Storage.bytesToMegabytes(memory));
 		}
 
-		System.out.println("Loadtime of lvg(all): " + (System.currentTimeMillis() - executionTime) + " (ms)");
+		System.out.println("ViLa time: " + (System.currentTimeMillis() - executionTime) / 1000 + " (sec)");
+
+		if (Config.TINLA_ENABLED || Config.CTINLA_ENABLED)
+			lvg.createTimeNeighborIndex();
+		else if (Config.TIPLA_ENABLED)
+			lvg.createTiPLa();
+
+		System.out.println("Loadtime of all: " + (System.currentTimeMillis() - executionTime) + " (ms)");
 
 		return lvg;
 	}
@@ -127,7 +104,6 @@ public class LoaderYT {
 		Node node;
 		int label;
 		Set<Integer> labels = new HashSet<>();
-		long time = System.currentTimeMillis();
 
 		while ((line = br.readLine()) != null) {
 
@@ -154,7 +130,5 @@ public class LoaderYT {
 		br.close();
 
 		Config.SIZE_OF_LABELS = labels.size();
-
-		System.out.println("TiLa time: " + (System.currentTimeMillis() - time) / 1000 + " (sec)");
 	}
 }

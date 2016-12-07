@@ -13,6 +13,7 @@ import java.util.Set;
 
 import algorithm.TimePathIndex;
 import system.Config;
+import utils.Storage;
 
 /**
  * Labeled Version Graph class
@@ -57,16 +58,6 @@ public class Graph implements Serializable {
 	}
 
 	/**
-	 * Get node object with id = nodeID
-	 * 
-	 * @param nodeID
-	 * @return
-	 */
-	public Node getNode(int nodeID) {
-		return nodes.get(nodeID);
-	}
-
-	/**
 	 * Add edge in LVG
 	 * 
 	 * @param src
@@ -75,40 +66,6 @@ public class Graph implements Serializable {
 	 */
 	public void addEdge(int src, int trg, int time) {
 		nodes.get(src).addEdge(nodes.get(trg), time);
-	}
-
-	/**
-	 * Return the version graph nodes
-	 * 
-	 * @return
-	 */
-	public Collection<Node> getNodes() {
-		return nodes.values();
-	}
-
-	/**
-	 * Graph Size
-	 * 
-	 * @return
-	 */
-	public int size() {
-		return nodes.size();
-	}
-
-	/**
-	 * Return nodes labeled with label at time instant t
-	 * 
-	 * @param t
-	 * @param label
-	 * @return
-	 */
-	public Set<Node> getTiLaNodes(int t, int label) {
-		Set<Node> set;
-
-		if ((set = TiLa.get(t).get(label)) != null)
-			return set;
-
-		return Collections.emptySet();
 	}
 
 	/**
@@ -127,24 +84,6 @@ public class Graph implements Serializable {
 		}
 
 		nodes.add(n);
-	}
-
-	/**
-	 * Return TiLa
-	 * 
-	 * @return
-	 */
-	public List<Map<Integer, Set<Node>>> getTiLa() {
-		return TiLa;
-	}
-
-	/**
-	 * Return TiPLa index
-	 * 
-	 * @return
-	 */
-	public Map<Integer, Map<String, Set<Node>>> getTiPLa() {
-		return TiPLa;
 	}
 
 	/**
@@ -199,11 +138,88 @@ public class Graph implements Serializable {
 				}
 			}
 
+			if (Config.SHOW_MEMORY) {
+				Runtime runtime = Runtime.getRuntime();
+
+				// Run the garbage collector
+				runtime.gc();
+
+				// Calculate the used memory
+				long memory = runtime.totalMemory() - runtime.freeMemory();
+
+				if (Config.TINLA_ENABLED)
+					System.out.println("Used memory with TiNLa(" + (r + 1) + "): " + Storage.bytesToMegabytes(memory));
+				else if (Config.CTINLA_ENABLED)
+					System.out.println("Used memory with CTiNLa(" + (r + 1) + "): " + Storage.bytesToMegabytes(memory));
+			}
+
 			if (Config.TINLA_ENABLED)
 				System.out.println("TiNLa(" + (r + 1) + ") time: " + (System.currentTimeMillis() - time) + " (ms)");
 			else if (Config.CTINLA_ENABLED)
 				System.out.println("CTiNLa(" + (r + 1) + ") time: " + (System.currentTimeMillis() - time) + " (ms)");
 		}
-
 	}
+
+	/**
+	 * Get node object with id = nodeID
+	 * 
+	 * @param nodeID
+	 * @return
+	 */
+	public Node getNode(int nodeID) {
+		return nodes.get(nodeID);
+	}
+
+	/**
+	 * Return the version graph nodes
+	 * 
+	 * @return
+	 */
+	public Collection<Node> getNodes() {
+		return nodes.values();
+	}
+
+	/**
+	 * Graph Size
+	 * 
+	 * @return
+	 */
+	public int size() {
+		return nodes.size();
+	}
+
+	/**
+	 * Return nodes labeled with label at time instant t
+	 * 
+	 * @param t
+	 * @param label
+	 * @return
+	 */
+	public Set<Node> getTiLaNodes(int t, int label) {
+		Set<Node> set;
+
+		if ((set = TiLa.get(t).get(label)) != null)
+			return set;
+
+		return Collections.emptySet();
+	}
+
+	/**
+	 * Return TiLa
+	 * 
+	 * @return
+	 */
+	public List<Map<Integer, Set<Node>>> getTiLa() {
+		return TiLa;
+	}
+
+	/**
+	 * Return TiPLa index
+	 * 
+	 * @return
+	 */
+	public Map<Integer, Map<String, Set<Node>>> getTiPLa() {
+		return TiPLa;
+	}
+
 }
