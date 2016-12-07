@@ -1,7 +1,7 @@
 package graph.version.loader;
 
 import system.Config;
-import system.Main;
+import utils.Storage;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -78,7 +78,7 @@ public class LoaderProteins {
 				} else
 					label = labels.get(line);
 
-				node.updateLabelLifetime(label, time);
+				node.updateLabelLifespan(label, time);
 				lvg.udpateTiLa(time, label, node);
 
 				sizeOfNodes--;
@@ -114,7 +114,7 @@ public class LoaderProteins {
 		Config.SIZE_OF_LABELS = labels.size();
 		System.out.println("Labels: " + labels.size());
 
-		System.out.println("TiLa time: " + (System.currentTimeMillis() - executionTime) / 1000 + " (sec)");
+		System.out.println("TiLa time: " + (System.currentTimeMillis() - executionTime) + " (ms)");
 
 		long memory;
 		Runtime runtime = Runtime.getRuntime();
@@ -131,9 +131,9 @@ public class LoaderProteins {
 				memory = runtime.totalMemory() - runtime.freeMemory();
 
 				if (Config.TINLA_ENABLED)
-					System.out.println("Used memory is megabytes without (TiNLa): " + Main.bytesToMegabytes(memory));
+					System.out.println("Used memory without (TiNLa): " + Storage.bytesToMegabytes(memory));
 				else if (Config.CTINLA_ENABLED)
-					System.out.println("Used memory is megabytes without (CTiNLa): " + Main.bytesToMegabytes(memory));
+					System.out.println("Used memory without (CTiNLa): " + Storage.bytesToMegabytes(memory));
 			}
 
 			lvg.createTimeNeighborIndex();
@@ -147,9 +147,9 @@ public class LoaderProteins {
 				memory = runtime.totalMemory() - runtime.freeMemory();
 
 				if (Config.TINLA_ENABLED)
-					System.out.println("Used memory is megabytes with (TiNLa): " + Main.bytesToMegabytes(memory));
+					System.out.println("Used memory with (TiNLa): " + Storage.bytesToMegabytes(memory));
 				else if (Config.CTINLA_ENABLED)
-					System.out.println("Used memory is megabytes with (CTiNLa): " + Main.bytesToMegabytes(memory));
+					System.out.println("Used memory with (CTiNLa): " + Storage.bytesToMegabytes(memory));
 			}
 		} else if (Config.TIPLA_ENABLED) {
 
@@ -160,7 +160,7 @@ public class LoaderProteins {
 				// Calculate the used memory
 				memory = runtime.totalMemory() - runtime.freeMemory();
 
-				System.out.println("Used memory is megabytes without (TiPLa): " + Main.bytesToMegabytes(memory));
+				System.out.println("Used memory without (TiPLa): " + Storage.bytesToMegabytes(memory));
 			}
 
 			lvg.createTiPLa();
@@ -173,11 +173,11 @@ public class LoaderProteins {
 				// Calculate the used memory
 				memory = runtime.totalMemory() - runtime.freeMemory();
 
-				System.out.println("Used memory is megabytes with (TiPLa): " + Main.bytesToMegabytes(memory));
+				System.out.println("Used memory with (TiPLa): " + Storage.bytesToMegabytes(memory));
 			}
 		}
 
-		System.out.println("Loadtime of lvg(all): " + (System.currentTimeMillis() - executionTime) / 1000 + " (sec)");
+		System.out.println("Loadtime of lvg(all): " + (System.currentTimeMillis() - executionTime) + " (ms)");
 
 		return lvg;
 	}

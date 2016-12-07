@@ -639,26 +639,18 @@ public class DurableMatching {
 
 					// for each r
 					for (int r = 0; r < Config.TINLA_R; r++) {
-						for (int l : pn.getLabelAdjacency(r)) {
-							// if there is not a neighbor with that label
+
+						for (int l : pn.getTiNLa(r)) {
+							// if there is not a neighbor with that label or the
+							// lifespan is empty
 							// remove it
-							if (n.getTiNLa(r, l) == null) {
+							if ((lifespan = n.getTiNLa(r, l, lifespan)) == null || lifespan.isEmpty()) {
 								found = false;
 								it.remove();
 								break;
-							} else { // otherwise get the lifespan and intersect
-								lifespan.and(n.getTiNLa(r, l));
-
-								// check if the neighborhood lifespan
-								// intersection
-								// is not empty
-								if (lifespan.isEmpty()) {
-									found = false;
-									it.remove();
-									break;
-								}
 							}
 						}
+
 						if (!found)
 							break;
 					}
@@ -667,28 +659,19 @@ public class DurableMatching {
 						continue;
 				} else if (Config.CTINLA_ENABLED) {
 					found = true;
-					Map<Integer, Integer> cT;
 
 					// for each r
 					for (int r = 0; r < Config.CTINLA_R; r++) {
 
-						for (Entry<Integer, Integer> l : pn.getLabelAdjacency_C(r).entrySet()) {
+						for (Entry<Integer, Integer> l : pn.getCTiNLa(r).entrySet()) {
 
 							// if there is not a neighbor with that label
 							// remove it
-							if ((cT = n.getCTiNLa(r, l.getKey())) == null) {
+							if ((lifespan = n.getCTiNLa(r, l.getKey(), l.getValue(), lifespan)) == null
+									|| lifespan.isEmpty()) {
 								found = false;
 								it.remove();
 								break;
-							} else { // otherwise get the lifespan and intersect
-
-								lifespan = n.getCTiNLa(cT, l.getValue(), lifespan);
-
-								if (lifespan.isEmpty()) {
-									found = false;
-									it.remove();
-									break;
-								}
 							}
 						}
 

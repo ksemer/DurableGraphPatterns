@@ -9,7 +9,7 @@ import java.util.Set;
 import graph.version.Graph;
 import graph.version.Node;
 import system.Config;
-import system.Main;
+import utils.Storage;
 
 /**
  * Loader of YT graph
@@ -85,9 +85,9 @@ public class LoaderYT {
 				memory = runtime.totalMemory() - runtime.freeMemory();
 
 				if (Config.TINLA_ENABLED)
-					System.out.println("Used memory is megabytes without (TiNLa): " + Main.bytesToMegabytes(memory));
+					System.out.println("Used memory without (TiNLa): " + Storage.bytesToMegabytes(memory));
 				else if (Config.CTINLA_ENABLED)
-					System.out.println("Used memory is megabytes without (CTiNLa): " + Main.bytesToMegabytes(memory));
+					System.out.println("Used memory without (CTiNLa): " + Storage.bytesToMegabytes(memory));
 			}
 
 			lvg.createTimeNeighborIndex();
@@ -100,13 +100,13 @@ public class LoaderYT {
 				memory = runtime.totalMemory() - runtime.freeMemory();
 
 				if (Config.TINLA_ENABLED)
-					System.out.println("Used memory is megabytes with (TiNLa): " + Main.bytesToMegabytes(memory));
+					System.out.println("Used memory with (TiNLa): " + Storage.bytesToMegabytes(memory));
 				else if (Config.CTINLA_ENABLED)
-					System.out.println("Used memory is megabytes with (CTiNLa): " + Main.bytesToMegabytes(memory));
+					System.out.println("Used memory with (CTiNLa): " + Storage.bytesToMegabytes(memory));
 			}
 		}
 
-		System.out.println("Loadtime of lvg(all): " + (System.currentTimeMillis() - executionTime) / 1000 + " (sec)");
+		System.out.println("Loadtime of lvg(all): " + (System.currentTimeMillis() - executionTime) + " (ms)");
 
 		return lvg;
 	}
@@ -143,7 +143,7 @@ public class LoaderYT {
 			for (int t = 0; t < Config.MAXIMUM_INTERVAL; t++) {
 				label = Integer.parseInt(attributes[pos]);
 
-				node.updateLabelLifetime(label, t);
+				node.updateLabelLifespan(label, t);
 				lvg.udpateTiLa(t, label, node);
 
 				if ((t + 1) % numberOfchanges == 0)

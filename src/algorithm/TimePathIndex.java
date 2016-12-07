@@ -1,4 +1,4 @@
-package algorithm.indexes;
+package algorithm;
 
 import java.io.IOException;
 import java.io.Serializable;

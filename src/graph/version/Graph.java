@@ -3,18 +3,15 @@ package graph.version;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Map.Entry;
 
-import algorithm.indexes.TimePathIndex;
+import algorithm.TimePathIndex;
 import system.Config;
 
 /**
@@ -163,9 +160,8 @@ public class Graph implements Serializable {
 	 * Create TiNLa && CTiNLa index
 	 */
 	public void createTimeNeighborIndex() {
-		int R = -1, label;
+		int R = -1;
 		Node trg;
-		BitSet lifespan;
 
 		if (Config.TINLA_ENABLED) {
 			System.out.println("TiNLa(" + Config.TINLA_R + ") construction is starting...");
@@ -177,66 +173,37 @@ public class Graph implements Serializable {
 
 		long time = System.currentTimeMillis();
 
-		// for all nodes
-		for (Node n : nodes.values()) {
+		// for each r
+		for (int r = 0; r < R; r++) {
 
-			Set<Node> visited = new HashSet<>();
-			Set<Edge> temp_edges = new HashSet<>();
-			Set<Edge> adjacency = new HashSet<>(n.getAdjacency());
+			// for all nodes
+			for (Node n : nodes.values()) {
 
-			// for each r
-			for (int r = 0; r < R; r++) {
-
-				// for each adjacent node of radius r
-				for (Edge e : adjacency) {
+				// for each adjacent node
+				for (Edge e : n.getAdjacency()) {
 					trg = e.getTarget();
 
-					// for avoiding cycles
-					if (R > 2) {
-						if (visited.contains(trg))
-							continue;
-						else {
-							// add node to visited set
-							visited.add(trg);
-						}
+					// update TiNLa and CTiNLa in radius = 1
+					if (r == 0) {
+						if (Config.TINLA_ENABLED)
+							n.updateTiNLa(r, trg.getLabels());
+						else if (Config.CTINLA_ENABLED)
+							n.updateCTiNLa(r, trg.getLabels());
+					} else {
+						// update TiNLa and CTiNLa in radius > 1
+						if (Config.TINLA_ENABLED)
+							n.updateTiNLa(r, trg.getTiNLa().get(r - 1));
+						else if (Config.CTINLA_ENABLED)
+							n.updateCTiNLaR(r, trg.getCTiNLa().get(r - 1));
 					}
-
-					// for each label of trg node
-					for (Entry<Integer, BitSet> entry : trg.getLabels().entrySet()) {
-						// label
-						label = entry.getKey();
-
-						// lifespan of the label
-						lifespan = entry.getValue();
-
-						// for each active time instant update TiNLa index
-						for (Iterator<Integer> it = lifespan.stream().iterator(); it.hasNext();) {
-							int t = it.next();
-
-							if (Config.TINLA_ENABLED)
-								n.updateTiNLa(r, label, t);
-							else if (Config.CTINLA_ENABLED)
-								n.updateCTiNLa(r, label, t);
-						}
-					}
-					
-					//TODO skepsou kalutero tropo gia r > 1
-					// store in temp set the edges of the next hop
-					temp_edges.addAll(trg.getAdjacency());
 				}
-
-				// clear and set adjacency to show the next hop
-				adjacency.clear();
-				adjacency.addAll(temp_edges);
-				temp_edges.clear();
 			}
+
+			if (Config.TINLA_ENABLED)
+				System.out.println("TiNLa(" + (r + 1) + ") time: " + (System.currentTimeMillis() - time) + " (ms)");
+			else if (Config.CTINLA_ENABLED)
+				System.out.println("CTiNLa(" + (r + 1) + ") time: " + (System.currentTimeMillis() - time) + " (ms)");
 		}
 
-		if (Config.TINLA_ENABLED)
-			System.out.println(
-					"TiNLa(" + Config.TINLA_R + ") time: " + (System.currentTimeMillis() - time) / 1000 + " (sec)");
-		else if (Config.CTINLA_ENABLED)
-			System.out.println(
-					"CTiNLa(" + Config.CTINLA_R + ") time: " + (System.currentTimeMillis() - time) / 1000 + " (sec)");
 	}
 }

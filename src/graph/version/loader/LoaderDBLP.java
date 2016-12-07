@@ -1,7 +1,7 @@
 package graph.version.loader;
 
 import system.Config;
-import system.Main;
+import utils.Storage;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -84,9 +84,9 @@ public class LoaderDBLP {
 				memory = runtime.totalMemory() - runtime.freeMemory();
 
 				if (Config.TINLA_ENABLED)
-					System.out.println("Used memory is megabytes without (TiNLa): " + Main.bytesToMegabytes(memory));
+					System.out.println("Used memory without (TiNLa): " + Storage.bytesToMegabytes(memory));
 				else if (Config.CTINLA_ENABLED)
-					System.out.println("Used memory is megabytes without CTiNLa: " + Main.bytesToMegabytes(memory));
+					System.out.println("Used memory without CTiNLa: " + Storage.bytesToMegabytes(memory));
 			}
 
 			lvg.createTimeNeighborIndex();
@@ -100,9 +100,9 @@ public class LoaderDBLP {
 				memory = runtime.totalMemory() - runtime.freeMemory();
 
 				if (Config.TINLA_ENABLED)
-					System.out.println("Used memory is megabytes with (TiNLa): " + Main.bytesToMegabytes(memory));
+					System.out.println("Used memory with (TiNLa): " + Storage.bytesToMegabytes(memory));
 				else if (Config.CTINLA_ENABLED)
-					System.out.println("Used memory is megabytes with (CTiNLa): " + Main.bytesToMegabytes(memory));
+					System.out.println("Used memory with (CTiNLa): " + Storage.bytesToMegabytes(memory));
 			}
 		} else if (Config.TIPLA_ENABLED) {
 
@@ -113,7 +113,7 @@ public class LoaderDBLP {
 				// Calculate the used memory
 				memory = runtime.totalMemory() - runtime.freeMemory();
 
-				System.out.println("Used memory is megabytes without (TiPLa): " + Main.bytesToMegabytes(memory));
+				System.out.println("Used memory without (TiPLa): " + Storage.bytesToMegabytes(memory));
 			}
 
 			lvg.createTiPLa();
@@ -126,11 +126,11 @@ public class LoaderDBLP {
 				// Calculate the used memory
 				memory = runtime.totalMemory() - runtime.freeMemory();
 
-				System.out.println("Used memory is megabytes with (TiPLa): " + Main.bytesToMegabytes(memory));
+				System.out.println("Used memory with (TiPLa): " + Storage.bytesToMegabytes(memory));
 			}
 		}
 
-		System.out.println("Loadtime of lvg(all): " + (System.currentTimeMillis() - executionTime) / 1000 + " (sec)");
+		System.out.println("Loadtime of lvg(all): " + (System.currentTimeMillis() - executionTime) + " (ms)");
 
 		return lvg;
 	}
@@ -173,16 +173,16 @@ public class LoaderDBLP {
 					value = Integer.parseInt(attributes[t]);
 
 					if (value <= BEGINNER) {
-						node.updateLabelLifetime(0, t);
+						node.updateLabelLifespan(0, t);
 						lvg.udpateTiLa(t, 0, node);
 					} else if (value <= JUNIOR) {
-						node.updateLabelLifetime(1, t);
+						node.updateLabelLifespan(1, t);
 						lvg.udpateTiLa(t, 1, node);
 					} else if (value <= SENIOR) {
-						node.updateLabelLifetime(2, t);
+						node.updateLabelLifespan(2, t);
 						lvg.udpateTiLa(t, 2, node);
 					} else if (value >= PROF) {
-						node.updateLabelLifetime(3, t);
+						node.updateLabelLifespan(3, t);
 						lvg.udpateTiLa(t, 3, node);
 					}
 				}
@@ -215,7 +215,7 @@ public class LoaderDBLP {
 				for (int t = 0; t < years.length; t++) {
 					value = Integer.parseInt(years[t]);
 
-					node.updateLabelLifetime(conf, value);
+					node.updateLabelLifespan(conf, value);
 					lvg.udpateTiLa(value, conf, node);
 				}
 			}
@@ -225,7 +225,7 @@ public class LoaderDBLP {
 
 		br.close();
 
-		System.out.println("TiLa time: " + (System.currentTimeMillis() - time) / 1000 + " (sec)");
+		System.out.println("TiLa time: " + (System.currentTimeMillis() - time) + " (ms)");
 	}
 
 	/**

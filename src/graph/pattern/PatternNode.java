@@ -85,15 +85,21 @@ public class PatternNode {
 	}
 
 	/**
-	 * Get label adjacency
+	 * Get TiNLa
 	 * 
 	 * @return
 	 */
-	public Set<Integer> getLabelAdjacency(int r) {
+	public Set<Integer> getTiNLa(int r) {
 		return labelAdjacency.get(r);
 	}
 
-	public Map<Integer, Integer> getLabelAdjacency_C(int r) {
+	/**
+	 * Get CTiNLa
+	 * 
+	 * @param r
+	 * @return
+	 */
+	public Map<Integer, Integer> getCTiNLa(int r) {
 		return labelAdjacency_C.get(r);
 	}
 }

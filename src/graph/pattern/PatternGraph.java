@@ -127,35 +127,34 @@ public class PatternGraph {
 			for (PatternNode pn : nodes) {
 
 				// for each node in adjacency or radius r
-				for (PatternNode trg : pn.getAdjacency()) {
+				for (PatternNode pt : pn.getAdjacency()) {
 
 					if (Config.TINLA_ENABLED) {
 
 						// update TiNLa in radius = 1
 						if (r == 0)
-							pn.getLabelAdjacency(r).add(trg.getLabel());
+							pn.getTiNLa(r).add(pt.getLabel());
 						else // update TiNLa in radius > 1
-							pn.getLabelAdjacency(r).addAll(trg.getLabelAdjacency(r - 1));
+							pn.getTiNLa(r).addAll(pt.getTiNLa(r - 1));
 
 					} else if (Config.CTINLA_ENABLED) {
 
 						// update CTiNLa for radius = 1
 						if (r == 0) {
-							if ((in = pn.getLabelAdjacency_C(r).get(trg.getLabel())) == null)
-								pn.getLabelAdjacency_C(r).put(trg.getLabel(), 1);
+							if ((in = pn.getCTiNLa(r).get(pt.getLabel())) == null)
+								pn.getCTiNLa(r).put(pt.getLabel(), 1);
 							else
-								pn.getLabelAdjacency_C(r).put(trg.getLabel(), in.intValue() + 1);
+								pn.getCTiNLa(r).put(pt.getLabel(), in.intValue() + 1);
 
 						} else {
 
 							// update CTiNLa for radius > 1
-							for (int label : trg.getLabelAdjacency_C(r - 1).keySet()) {
+							for (int label : pt.getCTiNLa(r - 1).keySet()) {
 
-								if ((in = pn.getLabelAdjacency_C(r).get(label)) == null)
-									pn.getLabelAdjacency_C(r).put(label, trg.getLabelAdjacency_C(r - 1).get(label));
+								if ((in = pn.getCTiNLa(r).get(label)) == null)
+									pn.getCTiNLa(r).put(label, pt.getCTiNLa(r - 1).get(label));
 								else
-									pn.getLabelAdjacency_C(r).put(label,
-											in.intValue() + trg.getLabelAdjacency_C(r - 1).get(label));
+									pn.getCTiNLa(r).put(label, in.intValue() + pt.getCTiNLa(r - 1).get(label));
 							}
 						}
 					}

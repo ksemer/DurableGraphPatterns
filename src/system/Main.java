@@ -15,9 +15,6 @@ import utils.Storage;
  * @author ksemer
  */
 public class Main {
-	// =================================================================
-	private static final long MEGABYTE = 1024L * 1024L;
-	// =================================================================
 
 	/**
 	 * Main
@@ -78,15 +75,5 @@ public class Main {
 
 			new Query(lvg, iQ).run();
 		}
-	}
-
-	/**
-	 * Convert bytes to megabytes
-	 * 
-	 * @param bytes
-	 * @return
-	 */
-	public static long bytesToMegabytes(long bytes) {
-		return bytes / MEGABYTE;
 	}
 }
