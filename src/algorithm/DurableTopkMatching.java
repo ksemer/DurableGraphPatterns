@@ -42,7 +42,7 @@ public class DurableTopkMatching {
 	private BitSet iQ;
 
 	// Ranking structure
-	private Map<Integer, TreeMap<Integer, Set<Node>>> Rank;
+	private Map<Integer, TreeMap<Integer, Set<Node>>> Rank = new HashMap<>();
 
 	// threshold for time duration
 	private int threshold = Integer.MAX_VALUE;
@@ -51,7 +51,7 @@ public class DurableTopkMatching {
 	private boolean continuously;
 
 	// stores the k matches
-	private PriorityQueue<Match> topkMatches;
+	private PriorityQueue<Match> topkMatches = new PriorityQueue<Match>(11, new MatchComparator(false));
 
 	// stores all the matches
 	private Set<String> matchesFound;
@@ -60,7 +60,7 @@ public class DurableTopkMatching {
 	private Set<Integer> durationMaxRanking;
 
 	// minimum checked threshold Max, Adaptive
-	private int checkedTheta;
+	private int minimumCheckedTheta;
 
 	// total recursions
 	private int totalRecursions = 0;
@@ -72,7 +72,7 @@ public class DurableTopkMatching {
 	private int k;
 
 	// utility value for adaptive ranking
-	private int canDSize;
+	private int canDSize = Integer.MAX_VALUE;
 
 	// recursions per theta run
 	private int recursionsPerTheta;
@@ -107,12 +107,7 @@ public class DurableTopkMatching {
 		this.continuously = continuously;
 		this.rankingStrategy = rankingStrategy;
 
-		// initial C
-		Map<Integer, Set<Node>> initC;
 		timeLimit = System.currentTimeMillis();
-
-		topkMatches = new PriorityQueue<Match>(11, new MatchComparator(false));
-		Rank = new HashMap<>();
 
 		// if TiPLa index is activated use the path filtering
 		if (Config.TIPLA_ENABLED)
@@ -120,67 +115,14 @@ public class DurableTopkMatching {
 		else
 			filterCandidates(lvg, pg, iQ);
 
-		TreeMap<Integer, Set<Node>> ranking;
-		int sc, pn_id;
+		// threshold initialization
+		initializeThreshold();
 
-		// for each pattern node
-		for (PatternNode p : pg.getNodes()) {
-
-			ranking = Rank.get(p.getID());
-
-			// if ranking is empty then no matches
-			if (ranking.isEmpty()) {
-				threshold = -1;
-
-				// write no matches
-				writeTopMatches();
-				return;
-			}
-
-			// zero ranking
-			if (rankingStrategy == Config.ZERO_RANKING) {
-				threshold = 2;
-				continue;
-			} else if (rankingStrategy == Config.ADAPTIVE_RANKING) {
-				int cand = 0;
-
-				// from highest key to lowest in ranking
-				for (int th : ranking.descendingKeySet()) {
-					cand += ranking.get(th).size();
-
-					// there should be at least k candidates until th
-					if (cand >= Config.K && threshold > th) {
-						threshold = th;
-						break;
-					}
-				}
-			} else {
-				sc = ranking.lastKey();
-
-				if (threshold > sc)
-					threshold = sc;
-			}
-		}
-
-		// max ranking
-		if (rankingStrategy != Config.ZERO_RANKING) {
-			matchesFound = new HashSet<>();
-			durationMaxRanking = new HashSet<>();
-
-			// when there are not k candidates
-			if (rankingStrategy == Config.ADAPTIVE_RANKING && threshold > Config.MAXIMUM_INTERVAL)
-				threshold = 2;
-
-			// store which threshold has been chosen
-			durationMaxRanking.add(threshold);
-			checkedTheta = threshold;
-		}
-
+		int pn_id;
+		Set<Node> c;
+		Map<Integer, Set<Node>> initC;
 		TreeMap<Integer, Set<Node>> tree;
 		NavigableMap<Integer, Set<Node>> submap;
-
-		canDSize = Integer.MAX_VALUE;
-		Set<Node> c;
 
 		while (threshold > 1) {
 
@@ -216,8 +158,8 @@ public class DurableTopkMatching {
 				System.out.println("\nError: " + e.getMessage());
 			}
 
-			// topk matches found
-			if (topkMatches.size() == k)
+			// top-k matches found
+			if (topkMatches.size() == k && topkMatches.peek().getDuration() >= minimumCheckedTheta)
 				break;
 
 			// get new threshold
@@ -232,6 +174,65 @@ public class DurableTopkMatching {
 	}
 
 	/**
+	 * Threshold initialization depending on duration ordering
+	 * 
+	 * @throws IOException
+	 */
+	private void initializeThreshold() throws IOException {
+		TreeMap<Integer, Set<Node>> ranking;
+		int cand;
+
+		// for each pattern node
+		for (PatternNode p : pg.getNodes()) {
+
+			ranking = Rank.get(p.getID());
+
+			// if ranking is empty then no matches
+			if (ranking.isEmpty()) {
+				threshold = -1;
+
+				// write no matches
+				writeTopMatches();
+				return;
+			}
+
+			// max & adaptive
+			if (rankingStrategy != Config.ZERO_RANKING) {
+				cand = 0;
+
+				// from highest key to lowest in ranking
+				for (int th : ranking.descendingKeySet()) {
+					cand += ranking.get(th).size();
+
+					// there should be at least k candidates until th
+					if (cand >= Config.K && threshold > th) {
+						threshold = th;
+						break;
+					}
+				}
+			}
+		}
+
+		// max & adaptive ranking
+		if (rankingStrategy != Config.ZERO_RANKING) {
+			matchesFound = new HashSet<>();
+			durationMaxRanking = new HashSet<>();
+
+			// when there are not k candidates, threshold initial value is
+			// integer.maximum
+			if (rankingStrategy == Config.ADAPTIVE_RANKING && threshold > Config.MAXIMUM_INTERVAL)
+				threshold = 2;
+
+			// store which threshold has been chosen
+			durationMaxRanking.add(threshold);
+
+			minimumCheckedTheta = threshold;
+		} else { // zero ranking
+			threshold = 2;
+		}
+	}
+
+	/**
 	 * Compute the next threshold based on adaptive ranking
 	 * 
 	 * @return
@@ -240,7 +241,7 @@ public class DurableTopkMatching {
 		TreeMap<Integer, Set<Node>> ranking;
 		NavigableMap<Integer, Set<Node>> submap;
 
-		int threshold = checkedTheta, cand, prevS = (int) (canDSize + Config.CP * canDSize), prevC = canDSize;
+		int threshold = minimumCheckedTheta, cand, prevS = (int) (canDSize + Config.CP * canDSize), prevC = canDSize;
 		Integer from, to;
 		canDSize = Integer.MAX_VALUE;
 
@@ -280,7 +281,8 @@ public class DurableTopkMatching {
 
 		// store threshold that have been analyzed
 		durationMaxRanking.add(threshold);
-		checkedTheta = threshold;
+
+		minimumCheckedTheta = threshold;
 
 		return threshold;
 	}
@@ -293,7 +295,7 @@ public class DurableTopkMatching {
 	private int getMaxThreshold() {
 		int sc;
 		TreeMap<Integer, Set<Node>> ranking;
-		threshold = checkedTheta;
+		threshold = minimumCheckedTheta;
 
 		for (PatternNode p : pg.getNodes()) {
 			ranking = Rank.get(p.getID());
@@ -315,7 +317,9 @@ public class DurableTopkMatching {
 
 		// store threshold that have been analyzed
 		durationMaxRanking.add(threshold);
-		checkedTheta = threshold;
+
+		// store the minimum checked threshold
+		minimumCheckedTheta = threshold;
 
 		return threshold;
 	}
@@ -367,6 +371,7 @@ public class DurableTopkMatching {
 		Node src, trg;
 		String matchSign = null;
 		int[] signAr = null;
+		int duration = -1;
 
 		if (rankingStrategy != Config.ZERO_RANKING)
 			signAr = new int[match.size()];
@@ -401,81 +406,24 @@ public class DurableTopkMatching {
 						count++;
 					}
 
-					if (count < threshold)
-						return;
-
-				} else if (inter.cardinality() < threshold) {
-					// check if the cardinality is less than
-					// topScore or algoTerm
-					return;
+					// duration of continuous match
+					duration = count;
 				}
 			}
 		}
+
+		// duration of a non-continuous match
+		if (!continuously)
+			duration = inter.cardinality();
 
 		// if match has already been found
 		if (rankingStrategy != Config.ZERO_RANKING && matchesFound.contains((matchSign = Arrays.toString(signAr))))
 			return;
 
-		// duration of match
-		int duration = inter.cardinality(), minDuration;
+		int minDuration;
 
-		// if ranking strategy is max or adaptive
-		if (rankingStrategy == Config.MAX_RANKING || rankingStrategy == Config.ADAPTIVE_RANKING) {
-
-			if (topkMatches.size() < k) {
-
-				// add the match
-				topkMatches.offer(new Match(duration, inter, match));
-
-				// add the sign
-				matchesFound.add(matchSign);
-
-				durationMaxRanking.add(threshold);
-
-			} else if (topkMatches.size() == k) {
-
-				// if we have found k matches and the new match has higher
-				// duration
-				if (duration > (minDuration = topkMatches.peek().getDuration())) {
-
-					// remove match with the min duration as and its sign
-					matchesFound.remove(topkMatches.poll());
-
-					// add the match
-					topkMatches.offer(new Match(duration, inter, match));
-
-					// add the sign
-					matchesFound.add(matchSign);
-
-					// update threshold
-					threshold = topkMatches.peek().getDuration();
-
-					durationMaxRanking.add(threshold);
-
-					// update min checkedTheta
-					if (checkedTheta > threshold)
-						checkedTheta = threshold;
-
-				} else if (duration == minDuration) {
-
-					if (rankingStrategy == Config.ADAPTIVE_RANKING) {
-						threshold = duration + 1;
-
-						// if threshold has been already checked
-						while (durationMaxRanking.contains(threshold)) {
-							threshold++;
-						}
-
-					} else {
-						// set the threshold to look for matches with duration
-						// >=
-						// duration of min element in heap
-						threshold = duration + 1;
-					}
-				}
-			}
-		} else if (rankingStrategy == Config.ZERO_RANKING) { // ranking strategy
-																// is zero
+		if (rankingStrategy == Config.ZERO_RANKING) { // ranking strategy
+			// is zero
 
 			if (topkMatches.size() < k) {
 
@@ -499,6 +447,54 @@ public class DurableTopkMatching {
 					// set the threshold to look for matches with duration >=
 					// duration of min element in heap
 					threshold = duration + 1;
+				}
+			}
+		} else { // if ranking strategy is max or adaptive
+
+			// add the sign
+			matchesFound.add(matchSign);
+
+			if (topkMatches.size() < k) {
+
+				// add the match
+				topkMatches.offer(new Match(duration, inter, match));
+
+				// inform structure that this threshold has been chosen
+				durationMaxRanking.add(threshold);
+
+			} else if (topkMatches.size() == k) {
+
+				// if we have found k matches and the new match has higher
+				// duration
+				if (duration > (minDuration = topkMatches.peek().getDuration())) {
+
+					// remove match with the min duration as and its sign
+					matchesFound.remove(topkMatches.poll());
+
+					// add the match
+					topkMatches.offer(new Match(duration, inter, match));
+
+					// update threshold
+					threshold = topkMatches.peek().getDuration();
+
+					durationMaxRanking.add(threshold);
+
+				} else if (duration == minDuration) {
+					if (duration > threshold) {
+						threshold = duration;
+
+						// inform structure that this threshold has been chosen
+						durationMaxRanking.add(threshold);
+					} else if (duration == threshold) {
+
+						// if threshold + 1 has been already checked then
+						// algorithm should stop
+						if (durationMaxRanking.contains(++threshold)) {
+							// thus we set threshold to the highest value
+							threshold = Integer.MAX_VALUE;
+						} else
+							durationMaxRanking.add(threshold);
+					}
 				}
 			}
 		}
@@ -670,11 +666,11 @@ public class DurableTopkMatching {
 						if (count < threshold)
 							continue;
 
-					} else
-					// check if target is pruned or it is not alive during
-					// interval
-					if (inter.cardinality() < threshold)
+					} else if (inter.cardinality() < threshold) {
+						// check if target is pruned or it is not alive during
+						// interval
 						continue;
+					}
 
 					intersection.add(e.getTarget());
 				}
@@ -970,7 +966,7 @@ public class DurableTopkMatching {
 	private void writeTopMatches() throws IOException {
 		totalTime = (System.currentTimeMillis() - timeLimit);
 
-		String outputPath = Config.PATH_OUTPUT + "pq=" + pg.getID() + "_";
+		String outputPath = Config.PATH_OUTPUT + "topk_pq=" + pg.getID() + "_";
 
 		if (continuously)
 			outputPath += "cont_";

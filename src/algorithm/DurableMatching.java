@@ -38,7 +38,7 @@ public class DurableMatching {
 	private BitSet iQ;
 
 	// Ranking structure
-	private Map<Integer, TreeMap<Integer, Set<Node>>> Rank;
+	private Map<Integer, TreeMap<Integer, Set<Node>>> Rank = new HashMap<>();
 
 	// threshold for time duration
 	private int threshold = Integer.MAX_VALUE;
@@ -47,7 +47,7 @@ public class DurableMatching {
 	private boolean continuously;
 
 	// stores the matches
-	private Set<Match> topMatches;
+	private Set<Match> topMatches = new HashSet<Match>();
 
 	// keeps the max duration for the current matches
 	private int maxDuration;
@@ -88,12 +88,7 @@ public class DurableMatching {
 		this.continuously = continuously;
 		this.rankingStrategy = rankingStrategy;
 
-		// initial C
-		Map<Integer, Set<Node>> initC;
 		timeLimit = System.currentTimeMillis();
-
-		topMatches = new HashSet<Match>();
-		Rank = new HashMap<>();
 
 		// if TiPLa index is activated use the path filtering
 		if (Config.TIPLA_ENABLED)
@@ -101,30 +96,13 @@ public class DurableMatching {
 		else
 			filterCandidates(lvg, pg, iQ);
 
-		TreeMap<Integer, Set<Node>> ranking;
-		NavigableMap<Integer, Set<Node>> submap;
-		int sc, pn_id;
+		// threshold initialization
+		initializeThreshold();
 
-		for (PatternNode p : pg.getNodes()) {
-			ranking = Rank.get(p.getID());
-
-			// if ranking is empty then no matches
-			if (ranking.isEmpty()) {
-				threshold = -1;
-
-				// write no matches
-				writeTopMatches();
-
-				return;
-			}
-
-			sc = ranking.lastKey();
-
-			if (threshold > sc)
-				threshold = sc;
-		}
-
+		int pn_id;
+		Map<Integer, Set<Node>> initC;
 		TreeMap<Integer, Set<Node>> tree;
+		NavigableMap<Integer, Set<Node>> submap;
 
 		while (threshold > 1) {
 
@@ -170,6 +148,42 @@ public class DurableMatching {
 	}
 
 	/**
+	 * Threshold initialization depending on duration ordering
+	 * 
+	 * @throws IOException
+	 */
+	private void initializeThreshold() throws IOException {
+		int sc;
+		TreeMap<Integer, Set<Node>> ranking;
+
+		for (PatternNode p : pg.getNodes()) {
+			ranking = Rank.get(p.getID());
+
+			// if ranking is empty then no matches
+			if (ranking.isEmpty()) {
+				threshold = -1;
+
+				// write no matches
+				writeTopMatches();
+
+				return;
+			}
+
+			// max & adaptive ranking
+			if (rankingStrategy != Config.ZERO_RANKING) {
+				sc = ranking.lastKey();
+
+				if (threshold > sc)
+					threshold = sc;
+			}
+		}
+
+		// zero
+		if (rankingStrategy == Config.ZERO_RANKING)
+			threshold = 2;
+	}
+
+	/**
 	 * Compute the next threshold based on binary ranking
 	 * 
 	 * @return
@@ -195,6 +209,8 @@ public class DurableMatching {
 		if (threshold == 1 && oldT != 2)
 			return 2;
 
+		// TODO pc pt
+
 		return threshold;
 	}
 
@@ -204,7 +220,7 @@ public class DurableMatching {
 	 * @return
 	 */
 	private int getMaxThreshold() {
-		int oldT = threshold, sc;
+		int sc, oldT = threshold;
 		TreeMap<Integer, Set<Node>> ranking;
 
 		for (PatternNode p : pg.getNodes()) {
@@ -277,6 +293,9 @@ public class DurableMatching {
 		BitSet inter = (BitSet) iQ.clone();
 		Node src, trg;
 
+		// duration of match
+		int duration = -1;
+
 		// check the edges
 		for (PatternNode pn : pg.getNodes()) {
 
@@ -304,19 +323,16 @@ public class DurableMatching {
 						count++;
 					}
 
-					if (count < threshold)
+					if ((duration = count) < threshold)
 						return;
 
-				} else if (inter.cardinality() < threshold) {
+				} else if ((duration = inter.cardinality()) < threshold) {
 					// check if the cardinality is less than
 					// topScore or algoTerm
 					return;
 				}
 			}
 		}
-
-		// duration of match
-		int duration = inter.cardinality();
 
 		// if duration equals to max duration
 		if (duration == maxDuration) {
@@ -509,11 +525,11 @@ public class DurableMatching {
 						if (count < threshold)
 							continue;
 
-					} else
-					// check if target is pruned or it is not alive during
-					// interval
-					if (inter.cardinality() < threshold)
+					} else if (inter.cardinality() < threshold) {
+						// check if target is pruned or it is not alive during
+						// interval
 						continue;
+					}
 
 					intersection.add(e.getTarget());
 				}
@@ -807,7 +823,7 @@ public class DurableMatching {
 	private void writeTopMatches() throws IOException {
 		totalTime = (System.currentTimeMillis() - timeLimit);
 
-		String outputPath = Config.PATH_OUTPUT + "pq=" + pg.getID() + "_";
+		String outputPath = Config.PATH_OUTPUT + "most_pq=" + pg.getID() + "_";
 
 		if (continuously)
 			outputPath += "cont_";
