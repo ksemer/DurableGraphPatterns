@@ -119,7 +119,8 @@ public class DurableMatching {
 					initC.get(pn_id).addAll(entry1.getValue());
 			}
 
-			System.out.print("Threshold: " + threshold + "\tCan_size: " + initC.get(0).size());
+			if (Config.DEBUG)
+				System.out.print("Threshold: " + threshold + "\tCan_size: " + initC.get(0).size());
 			sizeOfRank++;
 
 			initC = DUALSIM(initC);
@@ -127,9 +128,11 @@ public class DurableMatching {
 			try {
 				recursionsPerTheta = 0;
 				searchPattern(initC, 0);
-				System.out.print("\tRecursions: " + recursionsPerTheta + "\n");
+
+				if (Config.DEBUG)
+					System.out.print("\tRecursions: " + recursionsPerTheta + "\n");
 			} catch (Exception e) {
-				System.out.println("\nError: " + e.getMessage());
+				System.out.println("\nTerminated Message: " + e.getMessage());
 			}
 
 			// matches found
@@ -189,27 +192,15 @@ public class DurableMatching {
 	 * @return
 	 */
 	private int getAdaptiveThreshold() {
-		int sc, oldT = threshold;
-		TreeMap<Integer, Set<Node>> ranking;
+		int oldT = threshold;
 
 		threshold -= Math.round(Config.ADAPTIVE_THETA * threshold);
 
-		for (PatternNode p : pg.getNodes()) {
-			ranking = Rank.get(p.getID());
-
-			if (ranking.floorKey(threshold) == null)
-				continue;
-
-			sc = ranking.floorKey(threshold);
-
-			if (threshold > sc)
-				threshold = sc;
-		}
-
-		if (threshold == 1 && oldT != 2)
+		if (threshold < 2) {
+			if (oldT == 2)
+				return 1;
 			return 2;
-
-		// TODO pc pt
+		}
 
 		return threshold;
 	}
@@ -855,6 +846,7 @@ public class DurableMatching {
 		// no matches found
 		if (threshold == -1) {
 			w.write("No matches");
+			w.flush();
 			w.close();
 			return;
 		}
@@ -920,6 +912,7 @@ public class DurableMatching {
 		}
 
 		w.write(result);
+		w.flush();
 		w.close();
 	}
 

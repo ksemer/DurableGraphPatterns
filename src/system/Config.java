@@ -94,7 +94,7 @@ public final class Config {
 	public static float CP = 10;
 	
 	// theta percent for adaptive strategy
-	public static float ADAPTIVE_THETA;
+	public static double ADAPTIVE_THETA;
 
 	// nodes' labels change over time
 	public static boolean LABEL_CHANGE;
@@ -163,7 +163,7 @@ public final class Config {
 
 			K = Integer.parseInt(Settings.getProperty("k", "1"));
 			CP = Float.parseFloat(Settings.getProperty("cp", "0.1"));
-			ADAPTIVE_THETA = Float.parseFloat(Settings.getProperty("adaptiveTheta", "0.1"));
+			ADAPTIVE_THETA = Double.parseDouble(Settings.getProperty("adaptiveTheta", "0.1"));
 			TINLA_R = Integer.parseInt(Settings.getProperty("TiNLa_r", "1"));
 			CTINLA_R = Integer.parseInt(Settings.getProperty("CTiNLa_r", "1"));
 			MAX_MATCHES = Integer.parseInt(Settings.getProperty("MaxMatches", "-1"));
