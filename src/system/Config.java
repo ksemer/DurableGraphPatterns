@@ -89,9 +89,6 @@ public final class Config {
 
 	// k matches for Durable Topk Queries
 	public static int K;
-
-	// candidates percent for adaptive strategy
-	public static float CP = 10;
 	
 	// theta percent for adaptive strategy
 	public static double ADAPTIVE_THETA;
@@ -116,6 +113,9 @@ public final class Config {
 
 	// radius for CTiNLa
 	public static int CTINLA_R;
+	
+	// for debugging messages
+	public static boolean DEBUG;
 
 	private static final Logger _log = Logger.getLogger(Config.class.getName());
 
@@ -160,9 +160,9 @@ public final class Config {
 			CTINLA_ENABLED = Boolean.parseBoolean(Settings.getProperty("CTiNLa", "false"));
 			TIPLA_ENABLED = Boolean.parseBoolean(Settings.getProperty("TiPLa", "false"));
 			LABEL_CHANGE = Boolean.parseBoolean(Settings.getProperty("LabelChange", "false"));
+			DEBUG = Boolean.parseBoolean(Settings.getProperty("Debug", "false"));
 
 			K = Integer.parseInt(Settings.getProperty("k", "1"));
-			CP = Float.parseFloat(Settings.getProperty("cp", "0.1"));
 			ADAPTIVE_THETA = Double.parseDouble(Settings.getProperty("adaptiveTheta", "0.1"));
 			TINLA_R = Integer.parseInt(Settings.getProperty("TiNLa_r", "1"));
 			CTINLA_R = Integer.parseInt(Settings.getProperty("CTiNLa_r", "1"));

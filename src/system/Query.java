@@ -45,61 +45,57 @@ public class Query {
 		String line = null;
 		boolean nodes = false;
 		int sizeOfNodes = 0, id = 0, n1, n2;
-		
+
 		ExecutorService executor = Executors.newCachedThreadPool();
 
 		BufferedReader br = new BufferedReader(new FileReader(Config.PATH_QUERY));
 
 		while ((line = br.readLine()) != null) {
-			
+
 			if (line.contains("--") && pg != null) {
-				
+
 				if (Config.RUN_DURABLE_QUERIES) {
-					
+
 					List<Callable<?>> callables = new ArrayList<>();
-					
-					if (Config.MAX_RANKING_ENABLED)					
+
+					if (Config.MAX_RANKING_ENABLED)
 						callables.add(setCallableDurQ(lvg, pg, iQ, Config.MAX_RANKING));
-					
+
 					if (Config.ADAPTIVE_RANKING_ENABLED)
 						callables.add(setCallableDurQ(lvg, pg, iQ, Config.ADAPTIVE_RANKING));
-				
+
 					if (Config.ZERO_RANKING_ENABLED)
-						callables.add(setCallableDurQ(lvg, pg, iQ, Config.ZERO_RANKING));			
+						callables.add(setCallableDurQ(lvg, pg, iQ, Config.ZERO_RANKING));
 
 					for (Callable<?> c : callables)
 						executor.submit(c);
 				}
-				
+
 				if (Config.RUN_TOPK_QUERIES) {
 					List<Callable<?>> callables = new ArrayList<>();
-					
-					//FIXME for testing purpose
-					new DurableTopkMatching(lvg, pg, iQ, Config.CONTIGUOUS_MATCHES, Config.K, Config.ADAPTIVE_RANKING);
-					System.exit(0);
 
-					if (Config.MAX_RANKING_ENABLED)					
+					if (Config.MAX_RANKING_ENABLED)
 						callables.add(setCallableTopkQ(lvg, pg, iQ, Config.MAX_RANKING));
-					
+
 					if (Config.ADAPTIVE_RANKING_ENABLED)
 						callables.add(setCallableTopkQ(lvg, pg, iQ, Config.ADAPTIVE_RANKING));
-				
+
 					if (Config.ZERO_RANKING_ENABLED)
-						callables.add(setCallableTopkQ(lvg, pg, iQ, Config.ZERO_RANKING));			
+						callables.add(setCallableTopkQ(lvg, pg, iQ, Config.ZERO_RANKING));
 
 					for (Callable<?> c : callables)
-						executor.submit(c);					
+						executor.submit(c);
 				}
 			} else if (line.contains("#")) {
-				
+
 				id = 0;
 				nodes = true;
 				sizeOfNodes = Integer.parseInt(br.readLine());
 				line = line.trim().replace("#", "");
 				pg = new PatternGraph(Integer.parseInt(line));
 				continue;
-			} else if (nodes) {			
-				
+			} else if (nodes) {
+
 				pg.addNode(id++, Integer.parseInt(line.trim()));
 				sizeOfNodes--;
 
@@ -126,12 +122,13 @@ public class Query {
 			}
 		}
 		br.close();
-		
+
 		executor.shutdown();
 	}
-	
+
 	/**
 	 * Set callable Durable query execution
+	 * 
 	 * @param lvg
 	 * @param pg
 	 * @param iQ
@@ -145,9 +142,10 @@ public class Query {
 		};
 		return c;
 	}
-	
+
 	/**
 	 * Set callable Topk Durable query execution
+	 * 
 	 * @param lvg
 	 * @param pg
 	 * @param iQ

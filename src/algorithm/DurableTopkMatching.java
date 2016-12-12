@@ -404,7 +404,8 @@ public class DurableTopkMatching {
 						shifted.and(shifted.get(1, shifted.length()));
 						count++;
 					}
-
+					
+					// duration of continuous matches
 					duration = count;
 
 				}
@@ -415,7 +416,7 @@ public class DurableTopkMatching {
 			duration = inter.cardinality();
 
 		// if match has already been found or duration is zero
-		if (rankingStrategy != Config.ZERO_RANKING && matchesFound.contains((matchSign = Arrays.toString(signAr))))
+		if (duration == 0 || (rankingStrategy != Config.ZERO_RANKING && matchesFound.contains((matchSign = Arrays.toString(signAr)))))
 			return;
 
 		int minDuration;
