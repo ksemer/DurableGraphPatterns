@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import graph.version.Edge;
@@ -72,7 +73,8 @@ public class TimePathIndex implements Serializable {
 			// to contain also the paths of size 0, node label itself
 			for (Node n : g.getNodes()) {
 
-				for (int label = 0; label < Config.SIZE_OF_LABELS; label++) {
+				for (Entry<Integer, BitSet> entry : n.getLabels().entrySet()) {
+					int label = entry.getKey();
 
 					for (Iterator<Integer> it = n.getLabel(label).stream().iterator(); it.hasNext();) {
 						int t = it.next();
@@ -181,10 +183,11 @@ public class TimePathIndex implements Serializable {
 		BitSet lifespan;
 		String Path;
 
-		for (int l : n.getLabels().keySet()) {
+		for (Entry<Integer, BitSet> entry : n.getLabels().entrySet()) {
+			int l = entry.getKey();
 
 			lifespan = (BitSet) life.clone();
-			lifespan.and(n.getLabel(l));
+			lifespan.and(entry.getValue());
 
 			if (!lifespan.isEmpty()) {
 

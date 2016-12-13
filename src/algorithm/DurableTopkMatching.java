@@ -63,7 +63,7 @@ public class DurableTopkMatching {
 	private int minimumCheckedTheta;
 
 	// total recursions
-	private int totalRecursions = 0;
+	private long totalRecursions = 0;
 
 	// size of rank
 	private int sizeOfRank = 0;
@@ -278,6 +278,7 @@ public class DurableTopkMatching {
 		// store threshold that have been analyzed
 		durationMaxRanking.add(threshold);
 
+		// store the minimum checked threshold
 		minimumCheckedTheta = threshold;
 
 		return threshold;
@@ -404,10 +405,9 @@ public class DurableTopkMatching {
 						shifted.and(shifted.get(1, shifted.length()));
 						count++;
 					}
-					
+
 					// duration of continuous matches
 					duration = count;
-
 				}
 			}
 		}
@@ -416,13 +416,14 @@ public class DurableTopkMatching {
 			duration = inter.cardinality();
 
 		// if match has already been found or duration is zero
-		if (duration == 0 || (rankingStrategy != Config.ZERO_RANKING && matchesFound.contains((matchSign = Arrays.toString(signAr)))))
+		if (duration == 0 || (rankingStrategy != Config.ZERO_RANKING
+				&& matchesFound.contains((matchSign = Arrays.toString(signAr)))))
 			return;
 
 		int minDuration;
 
-		if (rankingStrategy == Config.ZERO_RANKING) { // ranking strategy
-			// is zero
+		// ranking strategy is zero
+		if (rankingStrategy == Config.ZERO_RANKING) {
 
 			if (topkMatches.size() < k) {
 
@@ -436,7 +437,7 @@ public class DurableTopkMatching {
 				if (duration > (minDuration = topkMatches.peek().getDuration())) {
 
 					// remove match with the min duration
-					topkMatches.remove();
+					topkMatches.poll();
 
 					// add the match
 					topkMatches.offer(new Match(duration, inter, match));

@@ -3,6 +3,7 @@ package algorithm;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashMap;
@@ -49,11 +50,17 @@ public class DurableMatching {
 	// stores the matches
 	private Set<Match> topMatches = new HashSet<Match>();
 
+	// stores all the matches
+	private Set<String> matchesFound;
+
 	// keeps the max duration for the current matches
-	private int maxDuration;
+	private int maxDuration = 0;
+
+	// minimum checked threshold Max, Adaptive
+	private int minimumCheckedTheta;
 
 	// total recursions
-	private int totalRecursions = 0;
+	private long totalRecursions = 0;
 
 	// size of rank
 	private int sizeOfRank = 0;
@@ -136,8 +143,10 @@ public class DurableMatching {
 			}
 
 			// matches found
-			if (topMatches.size() != 0)
+			if (topMatches.size() != 0 && maxDuration >= threshold) {
+				System.out.println("Matches found: " + topMatches.size());
 				break;
+			}
 
 			// get new threshold
 			if (rankingStrategy == Config.ADAPTIVE_RANKING)
@@ -184,6 +193,11 @@ public class DurableMatching {
 		// zero
 		if (rankingStrategy == Config.ZERO_RANKING)
 			threshold = 2;
+		else {
+			matchesFound = new HashSet<>();
+
+			minimumCheckedTheta = threshold;
+		}
 	}
 
 	/**
@@ -192,15 +206,23 @@ public class DurableMatching {
 	 * @return
 	 */
 	private int getAdaptiveThreshold() {
-		int oldT = threshold;
+		int threshold = minimumCheckedTheta;
 
 		threshold -= Math.round(Config.ADAPTIVE_THETA * threshold);
 
 		if (threshold < 2) {
-			if (oldT == 2)
+			if (minimumCheckedTheta == 2)
 				return 1;
+
+			minimumCheckedTheta = 2;
 			return 2;
 		}
+
+		// store the minimum checked threshold
+		if (!topMatches.isEmpty() && maxDuration > threshold)
+			threshold = maxDuration;
+		
+		minimumCheckedTheta = threshold;
 
 		return threshold;
 	}
@@ -211,8 +233,9 @@ public class DurableMatching {
 	 * @return
 	 */
 	private int getMaxThreshold() {
-		int sc, oldT = threshold;
+		int sc;
 		TreeMap<Integer, Set<Node>> ranking;
+		threshold = minimumCheckedTheta;
 
 		for (PatternNode p : pg.getNodes()) {
 			ranking = Rank.get(p.getID());
@@ -226,8 +249,14 @@ public class DurableMatching {
 				threshold = sc;
 		}
 
-		if (oldT == threshold)
+		if (threshold == minimumCheckedTheta)
 			threshold--;
+
+		// store the minimum checked threshold
+		if (!topMatches.isEmpty() && maxDuration > threshold)
+			threshold = maxDuration;
+		
+		minimumCheckedTheta = threshold;
 
 		return threshold;
 	}
@@ -246,11 +275,9 @@ public class DurableMatching {
 
 		if (System.currentTimeMillis() > (timeLimit + Config.TIME_LIMIT * 1000)) {
 			throw new Exception("Reach time limit");
-		} else if (topMatches.size() == Config.MAX_MATCHES
+		} else if (topMatches.size() == Config.MAX_MATCHES && maxDuration >= threshold
 				&& (rankingStrategy == Config.MAX_RANKING || rankingStrategy == Config.ADAPTIVE_RANKING)) {
-			// max matches limit can be used only in the below strategies
-			// zero strategy may find more matches than the limit that are not
-			// the best solution at the current step
+			//FIXME this is for debugging purpose
 			throw new Exception("Reach maxMatches");
 		} else if (depth == pg.size() && c.size() != 0) {
 			computeMatchTime(c);
@@ -283,15 +310,21 @@ public class DurableMatching {
 	private void computeMatchTime(Map<Integer, Set<Node>> match) {
 		BitSet inter = (BitSet) iQ.clone();
 		Node src, trg;
-
-		// duration of match
+		int[] signAr = null;
+		String matchSign = null;
 		int duration = -1;
+
+		if (rankingStrategy != Config.ZERO_RANKING)
+			signAr = new int[match.size()];
 
 		// check the edges
 		for (PatternNode pn : pg.getNodes()) {
 
 			// get the node that have same label as pn
 			src = match.get(pn.getID()).iterator().next();
+
+			if (rankingStrategy != Config.ZERO_RANKING)
+				signAr[pn.getID()] = src.getID();
 
 			if (Config.LABEL_CHANGE)
 				// intersect labels lifespan
@@ -314,24 +347,29 @@ public class DurableMatching {
 						count++;
 					}
 
-					if ((duration = count) < threshold)
-						return;
-
-				} else if ((duration = inter.cardinality()) < threshold) {
-					// check if the cardinality is less than
-					// topScore or algoTerm
-					return;
+					// duration of continuous matches
+					duration = count;
 				}
 			}
 		}
 
+		if (!continuously)
+			duration = inter.cardinality();
+
+		// if match has already been found or duration is zero
+		if (duration == 0 || (rankingStrategy != Config.ZERO_RANKING
+				&& matchesFound.contains((matchSign = Arrays.toString(signAr)))))
+			return;
+
 		// if duration equals to max duration
 		if (duration == maxDuration) {
-			if (topMatches.size() == Config.MAX_MATCHES && rankingStrategy == Config.ZERO_RANKING) {
-				// if zero ranking then when topMatches is reached, then do not
-				// store any other match
+
+			// when topMatches is full, then do not store any other match
+			if (topMatches.size() == Config.MAX_MATCHES)
 				return;
-			}
+			
+			// add the sign
+			matchesFound.add(matchSign);
 
 			topMatches.add(new Match(duration, inter, match));
 		} else if (duration > maxDuration) {
@@ -339,11 +377,17 @@ public class DurableMatching {
 			// update the max duration
 			maxDuration = duration;
 
-			// update threshold
-			threshold = maxDuration;
+			// update threshold iff < maxDuration
+			if (threshold < maxDuration)
+				threshold = maxDuration;
 
 			// clean the old matches
 			topMatches.clear();
+			
+			matchesFound.clear();
+			
+			// add the sign
+			matchesFound.add(matchSign);
 
 			// add match
 			topMatches.add(new Match(duration, inter, match));
