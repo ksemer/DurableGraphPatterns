@@ -137,7 +137,11 @@ public class Query {
 	 */
 	private Callable<?> setCallableDurQ(Graph lvg, PatternGraph pg, BitSet iQ, int rankingStrategy) {
 		Callable<?> c = () -> {
-			new DurableMatching(lvg, pg, iQ, Config.CONTIGUOUS_MATCHES, rankingStrategy);
+			try {
+				new DurableMatching(lvg, pg, iQ, Config.CONTIGUOUS_MATCHES, rankingStrategy);
+			} catch (Exception e) {
+				System.err.println(e.getMessage());
+			}
 			return true;
 		};
 		return c;
@@ -154,7 +158,11 @@ public class Query {
 	 */
 	private Callable<?> setCallableTopkQ(Graph lvg, PatternGraph pg, BitSet iQ, int rankingStrategy) {
 		Callable<?> c = () -> {
-			new DurableTopkMatching(lvg, pg, iQ, Config.CONTIGUOUS_MATCHES, Config.K, rankingStrategy);
+			try {
+				new DurableTopkMatching(lvg, pg, iQ, Config.CONTIGUOUS_MATCHES, Config.K, rankingStrategy);
+			} catch (Exception e) {
+				System.err.println(e.getMessage());
+			}
 			return true;
 		};
 		return c;

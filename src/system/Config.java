@@ -174,13 +174,6 @@ public final class Config {
 
 			boolean stop = false;
 
-			// if max matches restriction is disabled then set algorithm to
-			// retrieve everything
-			if (MAX_MATCHES == -1)
-				MAX_MATCHES = Integer.MAX_VALUE;
-			else
-				_log.log(Level.WARNING, "Limit to number of matches is enabled", new Exception());
-
 			if (PATH_DATASET.isEmpty()) {
 				_log.log(Level.SEVERE, "dataset path is empty." + ". Abborted.", new Exception());
 				stop = true;
