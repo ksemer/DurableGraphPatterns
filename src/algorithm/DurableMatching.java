@@ -221,7 +221,7 @@ public class DurableMatching {
 		// store the minimum checked threshold
 		if (!topMatches.isEmpty() && maxDuration > threshold)
 			threshold = maxDuration;
-		
+
 		minimumCheckedTheta = threshold;
 
 		return threshold;
@@ -255,7 +255,7 @@ public class DurableMatching {
 		// store the minimum checked threshold
 		if (!topMatches.isEmpty() && maxDuration > threshold)
 			threshold = maxDuration;
-		
+
 		minimumCheckedTheta = threshold;
 
 		return threshold;
@@ -277,7 +277,7 @@ public class DurableMatching {
 			throw new Exception("Reach time limit");
 		} else if (topMatches.size() == Config.MAX_MATCHES && maxDuration >= threshold
 				&& (rankingStrategy == Config.MAX_RANKING || rankingStrategy == Config.ADAPTIVE_RANKING)) {
-			//FIXME this is for debugging purpose
+			// FIXME this is for debugging purpose
 			throw new Exception("Reach maxMatches");
 		} else if (depth == pg.size() && c.size() != 0) {
 			computeMatchTime(c);
@@ -367,9 +367,10 @@ public class DurableMatching {
 			// when topMatches is full, then do not store any other match
 			if (topMatches.size() == Config.MAX_MATCHES)
 				return;
-			
+
 			// add the sign
-			matchesFound.add(matchSign);
+			if (rankingStrategy != Config.ZERO_RANKING)
+				matchesFound.add(matchSign);
 
 			topMatches.add(new Match(duration, inter, match));
 		} else if (duration > maxDuration) {
@@ -383,11 +384,13 @@ public class DurableMatching {
 
 			// clean the old matches
 			topMatches.clear();
-			
-			matchesFound.clear();
-			
-			// add the sign
-			matchesFound.add(matchSign);
+
+			if (rankingStrategy != Config.ZERO_RANKING) {
+				matchesFound.clear();
+
+				// add the sign
+				matchesFound.add(matchSign);
+			}
 
 			// add match
 			topMatches.add(new Match(duration, inter, match));
@@ -888,9 +891,8 @@ public class DurableMatching {
 		w.write("-------------------\n");
 
 		// no matches found
-		if (threshold == -1) {
+		if (threshold == -1 || topMatches.isEmpty()) {
 			w.write("No matches");
-			w.flush();
 			w.close();
 			return;
 		}

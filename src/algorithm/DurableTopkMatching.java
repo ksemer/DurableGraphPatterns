@@ -1029,7 +1029,7 @@ public class DurableTopkMatching {
 		w.write("-------------------\n");
 
 		// no matches found
-		if (threshold == -1) {
+		if (threshold == -1 || topkMatches.isEmpty()) {
 			w.write("No matches");
 			w.close();
 			return;

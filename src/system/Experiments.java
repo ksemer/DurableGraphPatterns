@@ -5,6 +5,7 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -14,10 +15,13 @@ import algorithm.DurableTopkMatching;
 import graph.pattern.PatternGraph;
 import graph.version.Graph;
 import graph.version.loader.LoaderDBLP;
+import graph.version.loader.LoaderProteins;
 import graph.version.loader.LoaderYT;
 
 public class Experiments {
 	private static String out;
+	private static boolean runTopk = true;
+	private static boolean runMost = false;
 
 	/**
 	 * Main
@@ -79,17 +83,22 @@ public class Experiments {
 		} else if (dataset.contains("yt")) { // youtube
 			Config.MAXIMUM_INTERVAL = 37;
 			lvg = new LoaderYT().loadDataset();
+		} else {
+			// proteins
+			lvg = new LoaderProteins().loadDataset();
 		}
 
-		runQTopk(lvg);
-		runQMost(lvg);
+		if (runTopk)
+			runQ(lvg, true, false);
+
+		if (runMost)
+			runQ(lvg, false, true);
 	}
 
-	public static void runQTopk(Graph lvg) throws Exception {
+	public static void runQ(Graph lvg, boolean runTop, boolean runMost) throws Exception {
 		String dataset = Config.PATH_DATASET.toLowerCase();
-
-		Config.RUN_TOPK_QUERIES = true;
-		Config.RUN_DURABLE_QUERIES = false;
+		Config.RUN_TOPK_QUERIES = runTop;
+		Config.RUN_DURABLE_QUERIES = runMost;
 
 		// for dblp dataset
 		if (dataset.contains("dblp")) {
@@ -118,54 +127,105 @@ public class Experiments {
 			Config.ADAPTIVE_RANKING_ENABLED = true;
 			run(lvg, "/home/ksemer/workspaces/tkde_data/queries/queries_least.txt", "least");
 			run(lvg, "/home/ksemer/workspaces/tkde_data/queries/queries_most.txt", "most");
+		} else { // proteins
+
+			String[] x = dataset.split("/");
+			String dataName = x[x.length - 1].replace(".gfu", "");
+
+			Config.MAX_RANKING_ENABLED = true;
+			Config.ADAPTIVE_RANKING_ENABLED = false;
+			// run(lvg, "/home/ksemer/workspaces/tkde_data/queries/queries_" +
+			// dataName + ".txt", dataName);
+			run_for_proteins(lvg, dataName);
+
+			// Config.MAX_RANKING_ENABLED = true;
+			// Config.ADAPTIVE_RANKING_ENABLED = false;
+			// run(lvg, "/home/ksemer/workspaces/tkde_data/queries/queries_" +
+			// dataName + ".txt", dataName);
+			// run_for_proteins(lvg, dataName);
 		}
 	}
 
-	public static void runQMost(Graph lvg) throws Exception {
-		String dataset = Config.PATH_DATASET.toLowerCase();
+	public static void run_for_proteins(Graph lvg, String outputPr) throws Exception {
 
-		Config.RUN_TOPK_QUERIES = false;
-		Config.RUN_DURABLE_QUERIES = true;
+		for (Entry<String, Integer> entry : LoaderProteins.labels.entrySet()) {
+			int label = entry.getValue();
+			
+			ExecutorService executor = Executors.newCachedThreadPool();
+			List<Callable<?>> callables = new ArrayList<>();
 
-		// for dblp dataset
-		if (dataset.contains("dblp")) {
+			for (int i = 2; i <= 6; i++) {
+				BitSet iQ;
+				Config.PATH_OUTPUT = out + outputPr + "1/" + entry.getKey() + "-";
+				iQ = new BitSet(Config.MAXIMUM_INTERVAL);
+				iQ.set(0, Config.MAXIMUM_INTERVAL, true);
 
-			Config.MAX_RANKING_ENABLED = true;
-			Config.ADAPTIVE_RANKING_ENABLED = false;
-			run(lvg, "/home/ksemer/workspaces/tkde_data/queries/queries_prof.txt", "prof");
-			run(lvg, "/home/ksemer/workspaces/tkde_data/queries/queries_senior.txt", "senior");
-			run(lvg, "/home/ksemer/workspaces/tkde_data/queries/queries_junior.txt", "junior");
-			run(lvg, "/home/ksemer/workspaces/tkde_data/queries/queries_begin.txt", "begin");
+				PatternGraph pg = new PatternGraph(i);
 
-			Config.MAX_RANKING_ENABLED = false;
-			Config.ADAPTIVE_RANKING_ENABLED = true;
-			run(lvg, "/home/ksemer/workspaces/tkde_data/queries/queries_prof.txt", "prof");
-			run(lvg, "/home/ksemer/workspaces/tkde_data/queries/queries_senior.txt", "senior");
-			run(lvg, "/home/ksemer/workspaces/tkde_data/queries/queries_junior.txt", "junior");
-			run(lvg, "/home/ksemer/workspaces/tkde_data/queries/queries_begin.txt", "begin");
-		} else if (dataset.contains("yt")) { // youtube
+				// create node with label
+				for (int j = 0; j < i; j++) {
+					pg.addNode(j, label);
+				}
 
-			Config.MAX_RANKING_ENABLED = true;
-			Config.ADAPTIVE_RANKING_ENABLED = false;
-			run(lvg, "/home/ksemer/workspaces/tkde_data/queries/queries_least.txt", "least");
-			run(lvg, "/home/ksemer/workspaces/tkde_data/queries/queries_most.txt", "most");
+				// create edges
+				for (int k = 0; k < i; k++) {
+					for (int q = k + 1; q < i; q++) {
+						pg.addEdge(k, q);
+						pg.addEdge(q, k);
+					}
+				}
+				
+				if (Config.RUN_DURABLE_QUERIES) {
 
-			Config.MAX_RANKING_ENABLED = false;
-			Config.ADAPTIVE_RANKING_ENABLED = true;
-			run(lvg, "/home/ksemer/workspaces/tkde_data/queries/queries_least.txt", "least");
-			run(lvg, "/home/ksemer/workspaces/tkde_data/queries/queries_most.txt", "most");
+					if (Config.MAX_RANKING_ENABLED)
+						callables.add(setCallableDurQ(lvg, pg, iQ, Config.MAX_RANKING));
+
+					if (Config.ADAPTIVE_RANKING_ENABLED)
+						callables.add(setCallableDurQ(lvg, pg, iQ, Config.ADAPTIVE_RANKING));
+
+					if (Config.ZERO_RANKING_ENABLED)
+						callables.add(setCallableDurQ(lvg, pg, iQ, Config.ZERO_RANKING));
+				}
+
+				if (Config.RUN_TOPK_QUERIES) {
+
+					if (Config.MAX_RANKING_ENABLED)
+						callables.add(setCallableTopkQ(lvg, pg, iQ, Config.MAX_RANKING));
+
+					if (Config.ADAPTIVE_RANKING_ENABLED)
+						callables.add(setCallableTopkQ(lvg, pg, iQ, Config.ADAPTIVE_RANKING));
+
+					if (Config.ZERO_RANKING_ENABLED)
+						callables.add(setCallableTopkQ(lvg, pg, iQ, Config.ZERO_RANKING));
+				}
+			}
+			
+			for (Callable<?> c : callables)
+				executor.submit(c);
+
+			executor.shutdown();
+
+			while (!executor.isTerminated()) {
+			}
+
+			executor.shutdownNow();
+			System.out.println("shutdown finished");
 		}
+
+		System.out.println("shutdown finished");
+		lvg = null;
+
+		Runtime runtime = Runtime.getRuntime();
+
+		// Run the garbage collector
+		runtime.gc();
 	}
 
 	public static void run(Graph lvg, String queryInput, String outputPr) throws Exception {
 		BitSet iQ;
 		Config.PATH_OUTPUT = out + outputPr + "/";
-
 		iQ = new BitSet(Config.MAXIMUM_INTERVAL);
 		iQ.set(0, Config.MAXIMUM_INTERVAL, true);
-
-		// ---------------------------------------------------------
-
 		String[] edge;
 		PatternGraph pg = null;
 		String line = null;
@@ -252,6 +312,11 @@ public class Experiments {
 		executor.shutdownNow();
 		System.out.println("shutdown finished");
 		lvg = null;
+
+		Runtime runtime = Runtime.getRuntime();
+
+		// Run the garbage collector
+		runtime.gc();
 	}
 
 	/**
@@ -265,7 +330,11 @@ public class Experiments {
 	 */
 	private static Callable<?> setCallableDurQ(Graph lvg, PatternGraph pg, BitSet iQ, int rankingStrategy) {
 		Callable<?> c = () -> {
-			new DurableMatching(lvg, pg, iQ, Config.CONTIGUOUS_MATCHES, rankingStrategy);
+			try {
+				new DurableMatching(lvg, pg, iQ, Config.CONTIGUOUS_MATCHES, rankingStrategy);
+			} catch (Exception e) {
+				System.err.println(e.getMessage());
+			}
 			return true;
 		};
 		return c;
@@ -282,7 +351,11 @@ public class Experiments {
 	 */
 	private static Callable<?> setCallableTopkQ(Graph lvg, PatternGraph pg, BitSet iQ, int rankingStrategy) {
 		Callable<?> c = () -> {
-			new DurableTopkMatching(lvg, pg, iQ, Config.CONTIGUOUS_MATCHES, Config.K, rankingStrategy);
+			try {
+				new DurableTopkMatching(lvg, pg, iQ, Config.CONTIGUOUS_MATCHES, Config.K, rankingStrategy);
+			} catch (Exception e) {
+				System.err.println(e.getMessage());
+			}
 			return true;
 		};
 		return c;
