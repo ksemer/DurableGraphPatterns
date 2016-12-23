@@ -470,64 +470,32 @@ public class DurableTopkMatching {
 
 					// add the match
 					topkMatches.offer(new Match(duration, inter, match));
+				} else if (duration < minDuration)
+					return;
 
-					// update threshold
-					if (threshold < (minDuration = topkMatches.peek().getDuration())) {
-						threshold = minDuration + 1;
+				// update threshold
+				if (threshold < (minDuration = topkMatches.peek().getDuration())) {
+					threshold = minDuration + 1;
 
-						// if threshold minDuration + 1 has already been checked
-						if (durationMaxRanking.contains(threshold)) {
-							// top-k solution has been found
-							isTerminated = true;
-							throw new Exception("Top-k found");
-						}
-
-						durationMaxRanking.add(threshold);
-					} else if (threshold == minDuration) {
-						threshold++;
-
-						// if threshold ++ has already been checked
-						if (durationMaxRanking.contains(threshold)) {
-							// top-k solution has been found
-							isTerminated = true;
-							throw new Exception("Top-k found");
-						}
-
-						durationMaxRanking.add(threshold);
-
+					// if threshold minDuration + 1 has already been checked
+					if (durationMaxRanking.contains(threshold)) {
+						// top-k solution has been found
+						isTerminated = true;
+						throw new Exception("Top-k found");
 					}
+				} else if (threshold == minDuration) {
+					threshold++;
 
-					durationMaxRanking.add(threshold);
-
-				} else if (duration == minDuration) {
-
-					if (duration > threshold) {
-
-						threshold = duration + 1;
-
-						// if threshold ++ has already been checked
-						if (durationMaxRanking.contains(threshold)) {
-							// top-k solution has been found
-							isTerminated = true;
-							throw new Exception("Top-k found");
-						}
-
-						// inform structure that this threshold has been chosen
-						durationMaxRanking.add(threshold);
-					} else if (duration == threshold) {
-
-						threshold++;
-
-						// if threshold ++ has already been checked
-						if (durationMaxRanking.contains(threshold)) {
-							// top-k solution has been found
-							isTerminated = true;
-							throw new Exception("Top-k found");
-						}
-
-						durationMaxRanking.add(threshold);
+					// if threshold ++ has already been checked
+					if (durationMaxRanking.contains(threshold)) {
+						// top-k solution has been found
+						isTerminated = true;
+						throw new Exception("Top-k found");
 					}
 				}
+
+				// inform structure that this threshold has been chosen
+				durationMaxRanking.add(threshold);
 			}
 		}
 	}
@@ -1108,6 +1076,15 @@ public class DurableTopkMatching {
 
 		w.write(result);
 		w.close();
+	}
+
+	/**
+	 * Return query execution time
+	 * 
+	 * @return
+	 */
+	public long getTotalTime() {
+		return totalTime;
 	}
 
 	/**

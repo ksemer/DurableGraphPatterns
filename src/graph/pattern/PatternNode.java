@@ -34,7 +34,13 @@ public class PatternNode {
 		this.id = id;
 		this.label = label;
 		this.adjacency = new ArrayList<PatternNode>();
+		initializeNeighborIndexes();
+	}
 
+	/**
+	 * Initialize TiNLa & CTiNLa structures
+	 */
+	public void initializeNeighborIndexes() {
 		if (Config.TINLA_ENABLED) {
 			this.labelAdjacency = new ArrayList<>();
 
