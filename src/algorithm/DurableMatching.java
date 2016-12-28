@@ -963,15 +963,6 @@ public class DurableMatching {
 	}
 
 	/**
-	 * Return query execution time
-	 * 
-	 * @return
-	 */
-	public long getTotalTime() {
-		return totalTime;
-	}
-
-	/**
 	 * Support Class for filter candidates by path
 	 * 
 	 * @author ksemer

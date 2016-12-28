@@ -18,7 +18,9 @@ import utils.Storage;
  */
 public class LoaderYT {
 	// when a label change value
+	// FIXME set to 9 times for our yt dataset
 	private static final int numberOfchanges = 9;
+
 
 	/**
 	 * Create a labeled version graph in memory from a given DataSet nodeID \t

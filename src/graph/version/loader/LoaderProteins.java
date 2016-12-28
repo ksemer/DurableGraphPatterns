@@ -20,7 +20,7 @@ import graph.version.Node;
  */
 public class LoaderProteins {
 	// =================================================================
-	public static Map<String, Integer> labels = new HashMap<>();
+	private Map<String, Integer> labels = new HashMap<>();
 	// =================================================================
 
 	/**
@@ -113,7 +113,6 @@ public class LoaderProteins {
 
 		Config.SIZE_OF_LABELS = labels.size();
 		System.out.println("Labels: " + labels.size());
-		System.out.println("Labels map:\n" + labels);
 
 		System.out.println("ViLa time: " + (System.currentTimeMillis() - executionTime) + " (ms)");
 
@@ -147,6 +146,6 @@ public class LoaderProteins {
 	 * @return
 	 */
 	public Map<String, Integer> getLabels() {
-		return labels;
+		return this.labels;
 	}
 }

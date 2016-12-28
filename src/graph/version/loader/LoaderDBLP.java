@@ -81,7 +81,7 @@ public class LoaderDBLP {
 
 			System.out.println("Used memory with ViLa: " + Storage.bytesToMegabytes(memory));
 		}
-
+		
 		System.out.println("ViLa time: " + (System.currentTimeMillis() - executionTime) + " (ms)");
 
 		if (Config.TINLA_ENABLED || Config.CTINLA_ENABLED)
