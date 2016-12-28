@@ -119,6 +119,11 @@ public class PatternGraph {
 			R = Config.TINLA_R;
 		else if (Config.CTINLA_ENABLED)
 			R = Config.CTINLA_R;
+		
+		// create TiNLa/CTiNLa structures
+		for (PatternNode pn : nodes) {
+			pn.initializeNeighborIndexes();
+		}
 
 		// for each r
 		for (int r = 0; r < R; r++) {
@@ -163,15 +168,6 @@ public class PatternGraph {
 		}
 	}
 
-	/***
-	 * Return TiPLa
-	 * 
-	 * @return
-	 */
-	public Set<String> getTiPLa(int id) {
-		return TiPLa.get(id);
-	}
-
 	/**
 	 * Create path index Return for each pattern node the set of paths started
 	 * from it
@@ -204,7 +200,7 @@ public class PatternGraph {
 			if (Config.ISDIRECTED)
 				// path size of 0 (contains only it self)
 				if (p.getAdjacency().isEmpty())
-				in.get(p.getID()).add("" + p.getLabel());
+					in.get(p.getID()).add("" + p.getLabel());
 		}
 
 		// iterate path index
@@ -216,9 +212,11 @@ public class PatternGraph {
 				in.get(p.getID()).add(path);
 		}
 
-		// print for each pattern node its paths
-		for (PatternNode p : nodes)
-			System.out.println("PNodeID: " + p.getID() + "->" + in.get(p.getID()));
+		if (Config.DEBUG) {
+			// print for each pattern node its paths
+			for (PatternNode p : nodes)
+				System.out.println("PNodeID: " + p.getID() + "->" + in.get(p.getID()));
+		}
 
 		TiPLa = in;
 	}
@@ -302,6 +300,15 @@ public class PatternGraph {
 
 			set.add(src);
 		}
+	}
+	
+	/***
+	 * Return TiPLa
+	 * 
+	 * @return
+	 */
+	public Set<String> getTiPLa(int id) {
+		return TiPLa.get(id);
 	}
 
 	class n_info {
