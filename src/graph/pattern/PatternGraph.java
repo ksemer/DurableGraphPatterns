@@ -119,7 +119,7 @@ public class PatternGraph {
 			R = Config.TINLA_R;
 		else if (Config.CTINLA_ENABLED)
 			R = Config.CTINLA_R;
-		
+
 		// create TiNLa/CTiNLa structures
 		for (PatternNode pn : nodes) {
 			pn.initializeNeighborIndexes();
@@ -175,7 +175,6 @@ public class PatternGraph {
 	 * @return
 	 */
 	public void createPathIndex() {
-		System.out.println("Pattern Path Index is running");
 		hasBeenVisited = new HashMap<>();
 		pathIndexWT = new HashMap<>();
 
@@ -197,10 +196,11 @@ public class PatternGraph {
 		for (PatternNode p : nodes) {
 			in.put(p.getID(), new HashSet<>());
 
-			if (Config.ISDIRECTED)
+			if (Config.ISDIRECTED) {
 				// path size of 0 (contains only it self)
 				if (p.getAdjacency().isEmpty())
 					in.get(p.getID()).add("" + p.getLabel());
+			}
 		}
 
 		// iterate path index
@@ -301,7 +301,7 @@ public class PatternGraph {
 			set.add(src);
 		}
 	}
-	
+
 	/***
 	 * Return TiPLa
 	 * 
