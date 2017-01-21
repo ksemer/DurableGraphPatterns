@@ -61,11 +61,11 @@ public class Query {
 					if (Config.MAX_RANKING_ENABLED)
 						callables.add(setCallableDurQ(lvg, pg, iQ, Config.MAX_RANKING));
 
-					if (Config.ADAPTIVE_RANKING_ENABLED)
-						callables.add(setCallableDurQ(lvg, pg, iQ, Config.ADAPTIVE_RANKING));
+					if (Config.MAXBINARY_RANKING_ENABLED)
+						callables.add(setCallableDurQ(lvg, pg, iQ, Config.MAXBINARY_RANKING));
 
-					if (Config.ZERO_RANKING_ENABLED)
-						callables.add(setCallableDurQ(lvg, pg, iQ, Config.ZERO_RANKING));
+					if (Config.MIN_RANKING_ENABLED)
+						callables.add(setCallableDurQ(lvg, pg, iQ, Config.MIN_RANKING));
 
 					for (Callable<?> c : callables)
 						executor.submit(c);
@@ -77,11 +77,11 @@ public class Query {
 					if (Config.MAX_RANKING_ENABLED)
 						callables.add(setCallableTopkQ(lvg, pg, iQ, Config.MAX_RANKING));
 
-					if (Config.ADAPTIVE_RANKING_ENABLED)
-						callables.add(setCallableTopkQ(lvg, pg, iQ, Config.ADAPTIVE_RANKING));
+					if (Config.MAXBINARY_RANKING_ENABLED)
+						callables.add(setCallableTopkQ(lvg, pg, iQ, Config.MAXBINARY_RANKING));
 
-					if (Config.ZERO_RANKING_ENABLED)
-						callables.add(setCallableTopkQ(lvg, pg, iQ, Config.ZERO_RANKING));
+					if (Config.MIN_RANKING_ENABLED)
+						callables.add(setCallableTopkQ(lvg, pg, iQ, Config.MIN_RANKING));
 
 					for (Callable<?> c : callables)
 						executor.submit(c);

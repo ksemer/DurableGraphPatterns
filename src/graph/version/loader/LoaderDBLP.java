@@ -51,11 +51,11 @@ public class LoaderDBLP {
 			n1_id = Integer.parseInt(edge[0]);
 			n2_id = Integer.parseInt(edge[1]);
 
-			lvg.addNode(n1_id);
-			lvg.addNode(n2_id);
-
 			// edge[2] has the year/time
 			time = convert(edge[2]);
+
+			lvg.addNode(n1_id);
+			lvg.addNode(n2_id);
 
 			// src -> trg time label
 			lvg.addEdge(n1_id, n2_id, time);
@@ -131,6 +131,9 @@ public class LoaderDBLP {
 
 				for (int t = 0; t < attributes.length; t++) {
 					value = Integer.parseInt(attributes[t]);
+
+					if (value == 0)
+						continue;
 
 					if (value <= BEGINNER) {
 						node.updateLabelLifespan(0, t);

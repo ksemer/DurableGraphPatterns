@@ -18,11 +18,11 @@ public final class Config {
 	// max ranking identifier
 	public final static int MAX_RANKING = 1;
 
-	// adaptive ranking identifier
-	public final static int ADAPTIVE_RANKING = 2;
+	// maxbinary ranking identifier
+	public final static int MAXBINARY_RANKING = 2;
 
-	// zero ranking identifier
-	public final static int ZERO_RANKING = 3;
+	// min ranking identifier
+	public final static int MIN_RANKING = 3;
 
 	// ====================================================
 
@@ -53,8 +53,6 @@ public final class Config {
 	// for matches with contiguous duration
 	public static boolean CONTIGUOUS_MATCHES;
 
-	public static boolean RUN_RANDOM;
-
 	// Run topk algorithm
 	public static boolean RUN_TOPK_QUERIES;
 
@@ -67,16 +65,17 @@ public final class Config {
 	// # of labels in the dataset
 	public static int SIZE_OF_LABELS;
 
-	public static int RANDOM_ITERATIONS;
+	// to ignore nodes with les than at least lifespans
+	public static int AT_LEAST;
 
 	// show the memory info of structures
 	public static boolean SHOW_MEMORY;
 
-	// for zero ranking
-	public static boolean ZERO_RANKING_ENABLED;
+	// for min ranking
+	public static boolean MIN_RANKING_ENABLED;
 
-	// for adaptive ranking execution
-	public static boolean ADAPTIVE_RANKING_ENABLED;
+	// for max binary ranking execution
+	public static boolean MAXBINARY_RANKING_ENABLED;
 
 	// for max ranking execution
 	public static boolean MAX_RANKING_ENABLED;
@@ -89,8 +88,8 @@ public final class Config {
 
 	// k matches for Durable Topk Queries
 	public static int K;
-	
-	// theta percent for adaptive strategy
+
+	// theta percent for maxbinary strategy
 	public static double ADAPTIVE_THETA;
 
 	// nodes' labels change over time
@@ -113,7 +112,7 @@ public final class Config {
 
 	// radius for CTiNLa
 	public static int CTINLA_R;
-	
+
 	// for debugging messages
 	public static boolean DEBUG;
 
@@ -146,14 +145,13 @@ public final class Config {
 			LOAD_OBJECT = Boolean.parseBoolean(Settings.getProperty("LoadObject", "false"));
 			STORE_OBJECT = Boolean.parseBoolean(Settings.getProperty("StoreObject", "false"));
 
-			RUN_RANDOM = Boolean.parseBoolean(Settings.getProperty("Random", "false"));
 			RUN_TOPK_QUERIES = Boolean.parseBoolean(Settings.getProperty("TopkQueries", "false"));
 			RUN_DURABLE_QUERIES = Boolean.parseBoolean(Settings.getProperty("DurableQueries", "false"));
 			CONTIGUOUS_MATCHES = Boolean.parseBoolean(Settings.getProperty("ContiguousMatches", "false"));
 
 			MAX_RANKING_ENABLED = Boolean.parseBoolean(Settings.getProperty("MaxRanking", "false"));
-			ZERO_RANKING_ENABLED = Boolean.parseBoolean(Settings.getProperty("ZeroRanking", "false"));
-			ADAPTIVE_RANKING_ENABLED = Boolean.parseBoolean(Settings.getProperty("AdaptiveRanking", "false"));
+			MIN_RANKING_ENABLED = Boolean.parseBoolean(Settings.getProperty("MinRanking", "false"));
+			MAXBINARY_RANKING_ENABLED = Boolean.parseBoolean(Settings.getProperty("MaxBinaryRanking", "false"));
 
 			SHOW_MEMORY = Boolean.parseBoolean(Settings.getProperty("ShowMemory", "false"));
 			TINLA_ENABLED = Boolean.parseBoolean(Settings.getProperty("TiNLa", "false"));
@@ -163,14 +161,14 @@ public final class Config {
 			DEBUG = Boolean.parseBoolean(Settings.getProperty("Debug", "false"));
 
 			K = Integer.parseInt(Settings.getProperty("k", "1"));
-			ADAPTIVE_THETA = Double.parseDouble(Settings.getProperty("adaptiveTheta", "0.1"));
+			ADAPTIVE_THETA = Double.parseDouble(Settings.getProperty("adaptiveTheta", "0.5"));
 			TINLA_R = Integer.parseInt(Settings.getProperty("TiNLa_r", "1"));
 			CTINLA_R = Integer.parseInt(Settings.getProperty("CTiNLa_r", "1"));
 			MAX_MATCHES = Integer.parseInt(Settings.getProperty("MaxMatches", "-1"));
 			TIME_LIMIT = Integer.parseInt(Settings.getProperty("TimeLimit", "3600"));
 			TIPLA_MAX_DEPTH = Integer.parseInt(Settings.getProperty("TiPLa_depth", "2"));
 			MAXIMUM_INTERVAL = Integer.parseInt(Settings.getProperty("MaximumInterval", "-1"));
-			RANDOM_ITERATIONS = Integer.parseInt(Settings.getProperty("RandomIterations", "5"));
+			AT_LEAST = Integer.parseInt(Settings.getProperty("AtLeastLifespan", "0"));
 
 			boolean stop = false;
 
