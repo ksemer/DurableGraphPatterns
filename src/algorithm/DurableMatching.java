@@ -56,7 +56,7 @@ public class DurableMatching {
 	// keeps the max duration for the current matches
 	private int maxDuration = 0;
 
-	// minimum checked threshold Max, Adaptive
+	// minimum checked threshold Max, max binary
 	private int minimumCheckedTheta;
 
 	// total recursions
@@ -111,6 +111,8 @@ public class DurableMatching {
 		TreeMap<Integer, Set<Node>> tree;
 		NavigableMap<Integer, Set<Node>> submap;
 
+		System.out.println("--------------------");
+
 		while (threshold > 1) {
 
 			initC = new HashMap<>();
@@ -127,7 +129,7 @@ public class DurableMatching {
 			}
 
 			if (Config.DEBUG)
-				System.out.print("Threshold: " + threshold + "\tCan_size: " + initC.get(0).size());
+				System.out.print("Threshold: " + threshold);
 			sizeOfRank++;
 
 			initC = DUALSIM(initC);
@@ -149,10 +151,12 @@ public class DurableMatching {
 			}
 
 			// get new threshold
-			if (rankingStrategy == Config.ADAPTIVE_RANKING)
-				threshold = getAdaptiveThreshold();
+			if (rankingStrategy == Config.MAXBINARY_RANKING)
+				threshold = getMaxBinaryThreshold();
 			else if (rankingStrategy == Config.MAX_RANKING)
 				threshold = getMaxThreshold();
+			else
+				break;
 		}
 
 		// write matches
@@ -168,6 +172,12 @@ public class DurableMatching {
 		int sc;
 		TreeMap<Integer, Set<Node>> ranking;
 
+		// min
+		if (rankingStrategy == Config.MIN_RANKING) {
+			threshold = 2;
+			return;
+		}
+
 		for (PatternNode p : pg.getNodes()) {
 			ranking = Rank.get(p.getID());
 
@@ -181,23 +191,14 @@ public class DurableMatching {
 				return;
 			}
 
-			// max & adaptive ranking
-			if (rankingStrategy != Config.ZERO_RANKING) {
-				sc = ranking.lastKey();
+			sc = ranking.lastKey();
 
-				if (threshold > sc)
-					threshold = sc;
-			}
+			if (threshold > sc)
+				threshold = sc;
 		}
 
-		// zero
-		if (rankingStrategy == Config.ZERO_RANKING)
-			threshold = 2;
-		else {
-			matchesFound = new HashSet<>();
-
-			minimumCheckedTheta = threshold;
-		}
+		matchesFound = new HashSet<>();
+		minimumCheckedTheta = threshold;
 	}
 
 	/**
@@ -205,7 +206,7 @@ public class DurableMatching {
 	 * 
 	 * @return
 	 */
-	private int getAdaptiveThreshold() {
+	private int getMaxBinaryThreshold() {
 		int threshold = minimumCheckedTheta;
 
 		threshold -= Math.round(Config.ADAPTIVE_THETA * threshold);
@@ -253,8 +254,9 @@ public class DurableMatching {
 			threshold--;
 
 		// store the minimum checked threshold
-		if (!topMatches.isEmpty() && maxDuration > threshold)
+		if (!topMatches.isEmpty() && maxDuration > threshold) {
 			threshold = maxDuration;
+		}
 
 		minimumCheckedTheta = threshold;
 
@@ -276,8 +278,7 @@ public class DurableMatching {
 		if (System.currentTimeMillis() > (timeLimit + Config.TIME_LIMIT * 1000)) {
 			throw new Exception("Reach time limit");
 		} else if (topMatches.size() == Config.MAX_MATCHES && maxDuration >= threshold
-				&& (rankingStrategy == Config.MAX_RANKING || rankingStrategy == Config.ADAPTIVE_RANKING)) {
-			// FIXME this is for debugging purpose
+				&& rankingStrategy != Config.MIN_RANKING) {
 			throw new Exception("Reach maxMatches");
 		} else if (depth == pg.size() && c.size() != 0) {
 			computeMatchTime(c);
@@ -314,7 +315,7 @@ public class DurableMatching {
 		String matchSign = null;
 		int duration = -1;
 
-		if (rankingStrategy != Config.ZERO_RANKING)
+		if (rankingStrategy != Config.MIN_RANKING)
 			signAr = new int[match.size()];
 
 		// check the edges
@@ -323,7 +324,7 @@ public class DurableMatching {
 			// get the node that have same label as pn
 			src = match.get(pn.getID()).iterator().next();
 
-			if (rankingStrategy != Config.ZERO_RANKING)
+			if (rankingStrategy != Config.MIN_RANKING)
 				signAr[pn.getID()] = src.getID();
 
 			if (Config.LABEL_CHANGE)
@@ -356,8 +357,8 @@ public class DurableMatching {
 		if (!continuously)
 			duration = inter.cardinality();
 
-		// if match has already been found or duration is zero
-		if (duration == 0 || (rankingStrategy != Config.ZERO_RANKING
+		// if match has already been found or duration is min
+		if (duration == 0 || (rankingStrategy != Config.MIN_RANKING
 				&& matchesFound.contains((matchSign = Arrays.toString(signAr)))))
 			return;
 
@@ -369,7 +370,7 @@ public class DurableMatching {
 				return;
 
 			// add the sign
-			if (rankingStrategy != Config.ZERO_RANKING)
+			if (rankingStrategy != Config.MIN_RANKING)
 				matchesFound.add(matchSign);
 
 			topMatches.add(new Match(duration, inter, match));
@@ -385,7 +386,7 @@ public class DurableMatching {
 			// clean the old matches
 			topMatches.clear();
 
-			if (rankingStrategy != Config.ZERO_RANKING) {
+			if (rankingStrategy != Config.MIN_RANKING) {
 				matchesFound.clear();
 
 				// add the sign
@@ -741,9 +742,8 @@ public class DurableMatching {
 					continue;
 				}
 
-				// remove node from candidates since with score 1 it is not
-				// durable
-				if ((sc = lifespan.cardinality()) == 1)
+				// a node must have duration >= Config.AT_LEAST
+				if ((sc = lifespan.cardinality()) < Config.AT_LEAST)
 					it.remove();
 				else {
 					if ((current_candidates = rankingBasedOnlifespanScore.get(sc)) == null) {
@@ -839,8 +839,8 @@ public class DurableMatching {
 			for (Entry<Integer, nodeScore> entry1 : entry.getValue().entrySet()) {
 				durScore = entry1.getValue().score;
 
-				// a node must have duration > 1
-				if (durScore == 1)
+				// a node must have duration >= Config.AT_LEAST
+				if (durScore < Config.AT_LEAST)
 					continue;
 
 				if ((currentCandidates = patternNodeRank.get(durScore)) == null) {
@@ -875,11 +875,11 @@ public class DurableMatching {
 		else
 			outputPath += "tila_";
 
-		if (rankingStrategy == Config.ADAPTIVE_RANKING)
+		if (rankingStrategy == Config.MAXBINARY_RANKING)
 			outputPath += "r=a";
 		else if (rankingStrategy == Config.MAX_RANKING)
 			outputPath += "r=m";
-		else if (rankingStrategy == Config.ZERO_RANKING)
+		else if (rankingStrategy == Config.MIN_RANKING)
 			outputPath += "r=z";
 
 		FileWriter w = new FileWriter(outputPath);
@@ -892,6 +892,9 @@ public class DurableMatching {
 
 		// no matches found
 		if (threshold == -1 || topMatches.isEmpty()) {
+			for (PatternNode pn : pg.getNodes()) {
+				w.write("pg_id: " + pn.getID() + "\n");
+			}
 			w.write("No matches");
 			w.close();
 			return;
