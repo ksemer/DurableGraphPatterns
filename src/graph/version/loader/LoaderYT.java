@@ -18,7 +18,6 @@ import utils.Storage;
  */
 public class LoaderYT {
 	// when a label change value
-	// 9 times for our yt dataset
 	private static final int numberOfchanges = 9;
 
 	/**
@@ -44,14 +43,12 @@ public class LoaderYT {
 			n1_id = Integer.parseInt(edge[0]);
 			n2_id = Integer.parseInt(edge[1]);
 
-			// edge[2] has the year/time
-			time = edge[2].split(",");
-
 			lvg.addNode(n1_id);
 			lvg.addNode(n2_id);
 
+			// edge[2] has the year/time
+			time = edge[2].split(",");
 			for (int t = Integer.parseInt(time[0]); t <= Integer.parseInt(time[1]); t++) {
-
 				lvg.addEdge(n1_id, n2_id, t);
 
 				if (!Config.ISDIRECTED)
@@ -77,7 +74,7 @@ public class LoaderYT {
 			System.out.println("Used memory with ViLa: " + Storage.bytesToMegabytes(memory));
 		}
 
-		System.out.println("ViLa time: " + (System.currentTimeMillis() - executionTime) + " (ms)");
+		System.out.println("ViLa time: " + (System.currentTimeMillis() - executionTime) / 1000 + " (sec)");
 
 		if (Config.TINLA_ENABLED || Config.CTINLA_ENABLED)
 			lvg.createTimeNeighborIndex();
@@ -115,14 +112,11 @@ public class LoaderYT {
 
 			// get node
 			node = lvg.getNode(Integer.parseInt(token[0]));
-
-			if (node == null)
-				continue;
-
 			int pos = 0;
 
 			for (int t = 0; t < Config.MAXIMUM_INTERVAL; t++) {
 				label = Integer.parseInt(attributes[pos]);
+
 				node.updateLabelLifespan(label, t);
 				lvg.udpateTiLa(t, label, node);
 
