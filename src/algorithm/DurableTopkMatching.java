@@ -230,6 +230,11 @@ public class DurableTopkMatching {
 						break;
 					}
 				}
+				
+				// if there are not k candidate nodes
+				// search for < k matches using the min threshold
+				if (cand < Config.K) {
+					threshold = ranking.firstKey();
 			}
 		}
 
