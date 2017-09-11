@@ -230,37 +230,38 @@ public class DurableTopkMatching {
 						break;
 					}
 				}
-				
+
 				// if there are not k candidate nodes
 				// search for < k matches using the min threshold
 				if (cand < Config.K) {
 					threshold = ranking.firstKey();
-			}
-		}
-
-		// max & maxbinary ranking
-		if (rankingStrategy != Config.MIN_RANKING) {
-			matchesFound = new HashSet<>();
-			durationMaxRanking = new HashSet<>();
-
-			// if there are not k candidate nodes
-			if (threshold > Config.MAXIMUM_INTERVAL) {
-				threshold = -1;
-
-				// write no matches
-				writeTopMatches();
-				return;
+				}
 			}
 
-			// store which threshold has been chosen
-			durationMaxRanking.add(threshold);
+			// max & maxbinary ranking
+			if (rankingStrategy != Config.MIN_RANKING) {
+				matchesFound = new HashSet<>();
+				durationMaxRanking = new HashSet<>();
 
-			// when solution has same duration as the query interval
-			durationMaxRanking.add(iQ.cardinality() + 1);
+				// if there are not k candidate nodes
+				if (threshold > Config.MAXIMUM_INTERVAL) {
+					threshold = -1;
 
-			minimumCheckedTheta = threshold;
-		} else { // min ranking
-			threshold = 2;
+					// write no matches
+					writeTopMatches();
+					return;
+				}
+
+				// store which threshold has been chosen
+				durationMaxRanking.add(threshold);
+
+				// when solution has same duration as the query interval
+				durationMaxRanking.add(iQ.cardinality() + 1);
+
+				minimumCheckedTheta = threshold;
+			} else { // min ranking
+				threshold = 2;
+			}
 		}
 	}
 
