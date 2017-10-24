@@ -112,7 +112,7 @@ public class PatternGraph {
 	 */
 	public void createTimeNeighborIndex() {
 
-		int R = -1;
+		int R = -1, label;
 		Integer in;
 
 		if (Config.TINLA_ENABLED)
@@ -146,20 +146,22 @@ public class PatternGraph {
 
 						// update CTiNLa for radius = 1
 						if (r == 0) {
-							if ((in = pn.getCTiNLa(r).get(pt.getLabel())) == null)
-								pn.getCTiNLa(r).put(pt.getLabel(), 1);
+							label = pt.getLabel();
+
+							if ((in = pn.getCTiNLa(r).get(label)) == null)
+								pn.getCTiNLa(r).put(label, 1);
 							else
-								pn.getCTiNLa(r).put(pt.getLabel(), in.intValue() + 1);
+								pn.getCTiNLa(r).put(label, in.intValue() + 1);
 
 						} else {
 
 							// update CTiNLa for radius > 1
-							for (int label : pt.getCTiNLa(r - 1).keySet()) {
+							for (int label_ : pt.getCTiNLa(r - 1).keySet()) {
 
-								if ((in = pn.getCTiNLa(r).get(label)) == null)
-									pn.getCTiNLa(r).put(label, pt.getCTiNLa(r - 1).get(label));
+								if ((in = pn.getCTiNLa(r).get(label_)) == null)
+									pn.getCTiNLa(r).put(label_, pt.getCTiNLa(r - 1).get(label_));
 								else
-									pn.getCTiNLa(r).put(label, in.intValue() + pt.getCTiNLa(r - 1).get(label));
+									pn.getCTiNLa(r).put(label_, in.intValue() + pt.getCTiNLa(r - 1).get(label_));
 							}
 						}
 					}
@@ -169,8 +171,8 @@ public class PatternGraph {
 	}
 
 	/**
-	 * Create path index Return for each pattern node the set of paths started
-	 * from it
+	 * Create path index Return for each pattern node the set of paths started from
+	 * it
 	 * 
 	 * @return
 	 */

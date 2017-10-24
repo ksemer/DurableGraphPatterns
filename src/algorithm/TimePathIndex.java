@@ -49,8 +49,8 @@ public class TimePathIndex implements Serializable {
 	}
 
 	/**
-	 * Create path index Return for each time instant all combinations of paths
-	 * -> nodes with that combination
+	 * Create path index Return for each time instant all combinations of paths ->
+	 * nodes with that combination
 	 * 
 	 * @param g
 	 * @return
@@ -61,6 +61,7 @@ public class TimePathIndex implements Serializable {
 		long time = System.currentTimeMillis();
 
 		for (int depth = Config.TIPLA_MAX_DEPTH; depth >= 1; depth--) {
+
 			for (Node n : g.getNodes()) {
 				traversePath(n, depth);
 			}

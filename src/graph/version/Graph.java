@@ -84,6 +84,15 @@ public class Graph implements Serializable {
 		}
 
 		nodes.add(n);
+
+		if (Config.ENABLE_STAR_LABEL_PATTERNS) {
+			if ((nodes = TiLa.get(t).get(Config.STAR_LABEL)) == null) {
+				nodes = new HashSet<>();
+				TiLa.get(t).put(Config.STAR_LABEL, nodes);
+			}
+
+			nodes.add(n);
+		}
 	}
 
 	/**

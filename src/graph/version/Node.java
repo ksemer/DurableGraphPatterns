@@ -49,6 +49,11 @@ public class Node implements Serializable {
 		this.adjacencies = new HashMap<>();
 		this.labels = new HashMap<>();
 
+		if (Config.ENABLE_STAR_LABEL_PATTERNS) {
+			BitSet lifespan = new BitSet(Config.MAXIMUM_INTERVAL);
+			labels.put(Config.STAR_LABEL, lifespan);
+		}
+
 		if (Config.TINLA_ENABLED) {
 			TiNLa = new ArrayList<>(Config.TINLA_R);
 
@@ -94,6 +99,10 @@ public class Node implements Serializable {
 		}
 
 		lifespan.set(t);
+
+		if (Config.ENABLE_STAR_LABEL_PATTERNS) {
+			labels.get(Config.STAR_LABEL).set(t);
+		}
 	}
 
 	/**
@@ -119,7 +128,7 @@ public class Node implements Serializable {
 				lifespan = new BitSet(Config.MAXIMUM_INTERVAL);
 				TiNLaR.put(label, lifespan);
 			}
-			
+
 			// update TiNLa index
 			lifespan.or(lifespanTrg);
 		}
@@ -163,9 +172,10 @@ public class Node implements Serializable {
 			}
 		}
 	}
-	
+
 	/**
 	 * Update CTiNLa in radius > 1
+	 * 
 	 * @param r
 	 * @param trgCTiNLa
 	 */
@@ -181,7 +191,7 @@ public class Node implements Serializable {
 
 			// label
 			label = entry.getKey();
-			
+
 			// per time instant the counter for the label
 			counterPerTime = entry.getValue();
 
@@ -193,13 +203,13 @@ public class Node implements Serializable {
 			// for each active time instant update TiNLa index
 			for (Entry<Integer, Integer> et : counterPerTime.entrySet()) {
 				t = et.getKey();
-				
+
 				if ((tmpCounter = CTiNLa_l.get(t)) == null)
 					CTiNLa_l.put(t, et.getValue());
 				else
 					CTiNLa_l.put(t, tmpCounter.intValue() + et.getValue());
 			}
-		}		
+		}
 	}
 
 	/**
@@ -287,9 +297,8 @@ public class Node implements Serializable {
 	}
 
 	/**
-	 * Given a cTiNLa index and a c value, return a lifespan that denotes that
-	 * there are at least c neighborhoods with the given label in the given
-	 * lifespan
+	 * Given a cTiNLa index and a c value, return a lifespan that denotes that there
+	 * are at least c neighborhoods with the given label in the given lifespan
 	 * 
 	 * @param r
 	 * @param label

@@ -1049,31 +1049,63 @@ public class DurableTopkMatching {
 					result += "g_id: " + n.getID() + "\n";
 			}
 
+			Node src, trg;
+
 			// write the edges
-			for (PatternNode pn : pg.getNodes()) {
+			for (PatternNode pn_src : pg.getNodes()) {
+
+				// graph node
+				src = mI.getMatch().get(pn_src.getID()).iterator().next();
 
 				// for each adjacent node
-				for (PatternNode trg : pn.getAdjacency()) {
+				for (PatternNode pn_trg : pn_src.getAdjacency()) {
 
-					for (Node n : mI.getMatch().get(pn.getID())) {
+					trg = mI.getMatch().get(pn_trg.getID()).iterator().next();
 
-						for (Edge e : n.getAdjacency()) {
+					if (src.getEdge(trg) != null) {
 
-							if (mI.getMatch().get(trg.getID()).contains(e.getTarget())) {
+						if (Config.PATH_DATASET.contains("dblp"))
+							result += LoaderDBLP.getAuthors().get(src.getID()) + ": ";
 
-								if (Config.PATH_DATASET.contains("dblp"))
-									result += LoaderDBLP.getAuthors().get(n.getID()) + ": ";
+						result += "(" + pn_src.getID() + ") ---> (" + pn_trg.getID() + ")";
 
-								result += "(" + pn.getID() + ") ---> (" + trg.getID() + ")";
+						if (Config.PATH_DATASET.contains("dblp"))
+							result += " " + LoaderDBLP.getAuthors().get(trg.getID());
 
-								if (Config.PATH_DATASET.contains("dblp"))
-									result += " " + LoaderDBLP.getAuthors().get(e.getTarget().getID());
-
-								result += "\n";
-							}
-						}
+						result += "\n";
 					}
 				}
+			}
+
+			if (Config.ENABLE_STAR_LABEL_PATTERNS) {
+				BitSet life;
+				String result_star = "-------------------\n------Star Label Info------\n";
+
+				for (PatternNode pn : pg.getNodes()) {
+
+					if (pn.getLabel() == Config.STAR_LABEL) {
+
+						src = mI.getMatch().get(pn.getID()).iterator().next();
+
+						result_star += src.getID() + "--> ";
+
+						for (Entry<Integer, BitSet> entry : src.getLabels().entrySet()) {
+
+							if (entry.getKey() == Config.STAR_LABEL)
+								continue;
+
+							life = (BitSet) entry.getValue().clone();
+							life.and(mI.getLifespan());
+
+							if (!life.isEmpty())
+								result_star += " " + entry.getKey() + ": " + life;
+						}
+						result_star += "\n";
+					}
+				}
+
+				if (!result_star.endsWith("-"))
+					result += result_star;
 			}
 
 			result += "-------------------\n";

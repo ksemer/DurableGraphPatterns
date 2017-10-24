@@ -113,6 +113,12 @@ public final class Config {
 	// radius for CTiNLa
 	public static int CTINLA_R;
 
+	// accept pattern queries with star labels
+	public static boolean ENABLE_STAR_LABEL_PATTERNS;
+
+	// star label value
+	public static int STAR_LABEL;
+
 	// for debugging messages
 	public static boolean DEBUG;
 
@@ -169,6 +175,9 @@ public final class Config {
 			TIPLA_MAX_DEPTH = Integer.parseInt(Settings.getProperty("TiPLa_depth", "2"));
 			MAXIMUM_INTERVAL = Integer.parseInt(Settings.getProperty("MaximumInterval", "-1"));
 			AT_LEAST = Integer.parseInt(Settings.getProperty("AtLeastLifespan", "0"));
+
+			ENABLE_STAR_LABEL_PATTERNS = Boolean.parseBoolean(Settings.getProperty("EnableStarLabels", "false"));
+			STAR_LABEL = Integer.parseInt(Settings.getProperty("StarLabel", "-1"));
 
 			boolean stop = false;
 
