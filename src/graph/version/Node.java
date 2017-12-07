@@ -85,6 +85,24 @@ public class Node implements Serializable {
 	}
 
 	/**
+	 * Add new edge or update one with lifespan ranging from start to end - 1
+	 * 
+	 * @param node
+	 * @param start
+	 * @param end
+	 */
+	public void addEdge(Node node, int start, int end) {
+		Edge e = adjacencies.get(node);
+
+		if (e == null) {
+			e = new Edge(node, new BitSet(Config.MAXIMUM_INTERVAL));
+			adjacencies.put(node, e);
+		}
+
+		e.updateLifetime(start, end);
+	}
+
+	/**
 	 * Update label lifespan
 	 * 
 	 * @param label
@@ -102,6 +120,28 @@ public class Node implements Serializable {
 
 		if (Config.ENABLE_STAR_LABEL_PATTERNS) {
 			labels.get(Config.STAR_LABEL).set(t);
+		}
+	}
+
+	/**
+	 * Update label lifespan ranging from start to end - 1
+	 * 
+	 * @param label
+	 * @param start
+	 * @param end
+	 */
+	public void updateLabelLifespan(int label, int start, int end) {
+		BitSet lifespan;
+
+		if ((lifespan = labels.get(label)) == null) {
+			lifespan = new BitSet(Config.MAXIMUM_INTERVAL);
+			labels.put(label, lifespan);
+		}
+
+		lifespan.set(start, end + 1);
+
+		if (Config.ENABLE_STAR_LABEL_PATTERNS) {
+			labels.get(Config.STAR_LABEL).set(start, end);
 		}
 	}
 

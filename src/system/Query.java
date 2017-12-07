@@ -3,9 +3,7 @@ package system;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -46,45 +44,36 @@ public class Query {
 		boolean nodes = false;
 		int sizeOfNodes = 0, id = 0, n1, n2;
 
-		ExecutorService executor = Executors.newCachedThreadPool();
+		ExecutorService executor = Executors.newFixedThreadPool(Config.THREADS);
 
 		BufferedReader br = new BufferedReader(new FileReader(Config.PATH_QUERY));
 
 		while ((line = br.readLine()) != null) {
 
 			if (line.contains("--") && pg != null) {
-
+				
 				if (Config.RUN_DURABLE_QUERIES) {
-
-					List<Callable<?>> callables = new ArrayList<>();
-
+					
 					if (Config.MAX_RANKING_ENABLED)
-						callables.add(setCallableDurQ(lvg, pg, iQ, Config.MAX_RANKING));
+						executor.submit(setCallableDurQ(lvg, pg, iQ, Config.MAX_RANKING));
 
 					if (Config.MAXBINARY_RANKING_ENABLED)
-						callables.add(setCallableDurQ(lvg, pg, iQ, Config.MAXBINARY_RANKING));
+						executor.submit(setCallableDurQ(lvg, pg, iQ, Config.MAXBINARY_RANKING));
 
 					if (Config.MIN_RANKING_ENABLED)
-						callables.add(setCallableDurQ(lvg, pg, iQ, Config.MIN_RANKING));
-
-					for (Callable<?> c : callables)
-						executor.submit(c);
+						executor.submit(setCallableDurQ(lvg, pg, iQ, Config.MIN_RANKING));
 				}
 
 				if (Config.RUN_TOPK_QUERIES) {
-					List<Callable<?>> callables = new ArrayList<>();
 
 					if (Config.MAX_RANKING_ENABLED)
-						callables.add(setCallableTopkQ(lvg, pg, iQ, Config.MAX_RANKING));
+						executor.submit(setCallableTopkQ(lvg, pg, iQ, Config.MAX_RANKING));
 
 					if (Config.MAXBINARY_RANKING_ENABLED)
-						callables.add(setCallableTopkQ(lvg, pg, iQ, Config.MAXBINARY_RANKING));
+						executor.submit(setCallableTopkQ(lvg, pg, iQ, Config.MAXBINARY_RANKING));
 
 					if (Config.MIN_RANKING_ENABLED)
-						callables.add(setCallableTopkQ(lvg, pg, iQ, Config.MIN_RANKING));
-
-					for (Callable<?> c : callables)
-						executor.submit(c);
+						executor.submit(setCallableTopkQ(lvg, pg, iQ, Config.MIN_RANKING));
 				}
 			} else if (line.contains("#")) {
 
@@ -140,7 +129,7 @@ public class Query {
 			try {
 				new DurableMatching(lvg, pg, iQ, Config.CONTIGUOUS_MATCHES, rankingStrategy);
 			} catch (Exception e) {
-				System.err.println(e.getMessage());
+				System.err.println("Most: " + e.getMessage() + " Strategy: " + rankingStrategy + " Size: " + pg.size());
 			}
 			return true;
 		};
@@ -161,7 +150,7 @@ public class Query {
 			try {
 				new DurableTopkMatching(lvg, pg, iQ, Config.CONTIGUOUS_MATCHES, Config.K, rankingStrategy);
 			} catch (Exception e) {
-				System.err.println(e.getMessage());
+				System.err.println("Topk: " + e.getMessage() + " Strategy: " + rankingStrategy + " Size: " + pg.size());
 			}
 			return true;
 		};

@@ -6,6 +6,7 @@ import java.util.Map;
 import graph.version.Graph;
 import graph.version.loader.LoaderDBLP;
 import graph.version.loader.LoaderProteins;
+import graph.version.loader.LoaderWikipedia;
 import graph.version.loader.LoaderYT;
 import utils.Storage;
 
@@ -60,6 +61,8 @@ public class Main {
 			// for yt dataset
 			else if (dataset.contains("yt"))
 				lvg = new LoaderYT().loadDataset();
+			else if (dataset.contains("wiki"))
+				lvg = new LoaderWikipedia().loadDataset();
 			// for proteins
 			else
 				lvg = new LoaderProteins().loadDataset();

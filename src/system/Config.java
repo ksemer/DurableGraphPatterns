@@ -47,6 +47,9 @@ public final class Config {
 	// path with all input queries
 	public static String PATH_QUERY;
 
+	// number of threads
+	public static int THREADS;
+
 	// dataset direction
 	public static boolean ISDIRECTED;
 
@@ -91,9 +94,6 @@ public final class Config {
 
 	// theta percent for maxbinary strategy
 	public static double ADAPTIVE_THETA;
-
-	// nodes' labels change over time
-	public static boolean LABEL_CHANGE;
 
 	// enable TiNLa
 	public static boolean TINLA_ENABLED;
@@ -147,6 +147,8 @@ public final class Config {
 			PATH_OUTPUT = Settings.getProperty("OutputPath", "");
 			PATH_QUERY = Settings.getProperty("QueryPath", "");
 
+			THREADS = Integer.parseInt(Settings.getProperty("Threads", "1"));
+
 			ISDIRECTED = Boolean.parseBoolean(Settings.getProperty("Directed", "false"));
 			LOAD_OBJECT = Boolean.parseBoolean(Settings.getProperty("LoadObject", "false"));
 			STORE_OBJECT = Boolean.parseBoolean(Settings.getProperty("StoreObject", "false"));
@@ -163,7 +165,6 @@ public final class Config {
 			TINLA_ENABLED = Boolean.parseBoolean(Settings.getProperty("TiNLa", "false"));
 			CTINLA_ENABLED = Boolean.parseBoolean(Settings.getProperty("CTiNLa", "false"));
 			TIPLA_ENABLED = Boolean.parseBoolean(Settings.getProperty("TiPLa", "false"));
-			LABEL_CHANGE = Boolean.parseBoolean(Settings.getProperty("LabelChange", "false"));
 			DEBUG = Boolean.parseBoolean(Settings.getProperty("Debug", "false"));
 
 			K = Integer.parseInt(Settings.getProperty("k", "1"));

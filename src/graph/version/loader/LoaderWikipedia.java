@@ -3,7 +3,9 @@ package graph.version.loader;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import graph.version.Graph;
@@ -12,14 +14,13 @@ import system.Config;
 import utils.Storage;
 
 /**
- * Loader of YT graph
+ * Loader of Wiki graph
  * 
  * @author ksemer
  */
-public class LoaderYT {
-	// when a label change value
-	// 9 times for our yt dataset
-	private static final int numberOfchanges = 9;
+public class LoaderWikipedia {
+	private Map<Integer, Integer> n_min = new HashMap<>();
+	private Map<Integer, Integer> n_max = new HashMap<>();
 
 	/**
 	 * Create a labeled version graph in memory from a given DataSet nodeID \t
@@ -32,8 +33,8 @@ public class LoaderYT {
 		System.out.println("Creating Labeled Version Graph...");
 		BufferedReader br = new BufferedReader(new FileReader(Config.PATH_DATASET));
 		String line = null;
-		String[] edge, time;
-		int n1_id, n2_id;
+		String[] edge;
+		int n1_id, n2_id, time;
 		long executionTime = System.currentTimeMillis();
 
 		Graph lvg = new Graph();
@@ -45,19 +46,44 @@ public class LoaderYT {
 			n2_id = Integer.parseInt(edge[1]);
 
 			// edge[2] has the year/time
-			time = edge[2].split(",");
+			time = Integer.parseInt(edge[2]);
+
+			if (n_min.containsKey(n1_id)) {
+				if (time < n_min.get(n1_id)) {
+					n_min.put(n1_id, time);
+				}
+
+				if (time > n_max.get(n1_id)) {
+					n_max.put(n1_id, time);
+				}
+			} else {
+				n_min.put(n1_id, time);
+				n_max.put(n1_id, time);
+			}
+
+			if (n_min.containsKey(n2_id)) {
+				if (time < n_min.get(n2_id)) {
+					n_min.put(n2_id, time);
+				}
+
+				if (time > n_max.get(n2_id)) {
+					n_max.put(n2_id, time);
+				}
+			} else {
+				n_min.put(n2_id, time);
+				n_max.put(n2_id, time);
+			}
 
 			lvg.addNode(n1_id);
 			lvg.addNode(n2_id);
 
-			for (int t = Integer.parseInt(time[0]); t <= Integer.parseInt(time[1]); t++) {
+			lvg.addEdge(n1_id, n2_id, time, Config.MAXIMUM_INTERVAL);
+			// lvg.addEdge(n1_id, n2_id, time);
 
-				lvg.addEdge(n1_id, n2_id, t);
-
-				if (!Config.ISDIRECTED)
-					// src -> trg time label
-					lvg.addEdge(n2_id, n1_id, t);
-			}
+			if (!Config.ISDIRECTED)
+				// src -> trg time label
+				// lvg.addEdge(n2_id, n1_id, time);
+				lvg.addEdge(n1_id, n2_id, time, Config.MAXIMUM_INTERVAL);
 		}
 		br.close();
 
@@ -73,7 +99,6 @@ public class LoaderYT {
 
 			// Calculate the used memory
 			long memory = runtime.totalMemory() - runtime.freeMemory();
-
 			System.out.println("Used memory with ViLa: " + Storage.bytesToMegabytes(memory));
 		}
 
@@ -101,17 +126,18 @@ public class LoaderYT {
 
 		BufferedReader br = new BufferedReader(new FileReader(Config.PATH_LABELS));
 		String line = null;
-		String[] token, attributes;
+		String[] token;
 		Node node;
 		int label;
 		Set<Integer> labels = new HashSet<>();
 
 		while ((line = br.readLine()) != null) {
 
-			token = line.split("\t");
+			token = line.split("\\s++");
 
 			// has the attribute value per time instance of the interval
-			attributes = token[1].split(",");
+			label = Integer.parseInt(token[1]);
+			labels.add(label);
 
 			// get node
 			node = lvg.getNode(Integer.parseInt(token[0]));
@@ -119,18 +145,18 @@ public class LoaderYT {
 			if (node == null)
 				continue;
 
-			int pos = 0;
+			int firstTime = n_min.get(node.getID());
 
-			for (int t = 0; t < Config.MAXIMUM_INTERVAL; t++) {
-				label = Integer.parseInt(attributes[pos]);
-				node.updateLabelLifespan(label, t);
-				lvg.udpateTiLa(t, label, node);
-				labels.add(label);
+			int range = firstTime + (int) (firstTime * 0.2);
 
-				if ((t + 1) % numberOfchanges == 0)
-					if (pos + 1 != attributes.length)
-						pos++;
-			}
+			if (range > Config.MAXIMUM_INTERVAL)
+				range = Config.MAXIMUM_INTERVAL;
+
+			if (range > n_max.get(node.getID()))
+				range = n_max.get(node.getID());
+
+			node.updateLabelLifespan(label, firstTime, range);
+			lvg.udpateTiLa(firstTime, range, label, node);
 		}
 		br.close();
 

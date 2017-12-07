@@ -69,6 +69,18 @@ public class Graph implements Serializable {
 	}
 
 	/**
+	 * Add edge in LVG with lifespan ranging from start to end - 1
+	 * 
+	 * @param src
+	 * @param trg
+	 * @param start
+	 * @param end
+	 */
+	public void addEdge(int src, int trg, int start, int end) {
+		nodes.get(src).addEdge(nodes.get(trg), start, end);
+	}
+
+	/**
 	 * Update TiLa add node in label set at time instant t
 	 * 
 	 * @param t
@@ -92,6 +104,28 @@ public class Graph implements Serializable {
 			}
 
 			nodes.add(n);
+		}
+	}
+
+	public void udpateTiLa(int start, int end, int label, Node n) {
+		Set<Node> nodes;
+
+		for (int t = start; t < end; t++) {
+			if ((nodes = TiLa.get(t).get(label)) == null) {
+				nodes = new HashSet<>();
+				TiLa.get(t).put(label, nodes);
+			}
+
+			nodes.add(n);
+
+			if (Config.ENABLE_STAR_LABEL_PATTERNS) {
+				if ((nodes = TiLa.get(t).get(Config.STAR_LABEL)) == null) {
+					nodes = new HashSet<>();
+					TiLa.get(t).put(Config.STAR_LABEL, nodes);
+				}
+
+				nodes.add(n);
+			}
 		}
 	}
 

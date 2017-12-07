@@ -392,9 +392,8 @@ public class DurableTopkMatching {
 			if (rankingStrategy != Config.MIN_RANKING)
 				signAr[pn.getID()] = src.getID();
 
-			if (Config.LABEL_CHANGE)
-				// intersect labels lifespan
-				inter.and(src.getLabel(pn.getLabel()));
+			// intersect labels lifespan
+			inter.and(src.getLabel(pn.getLabel()));
 
 			// get adjacency of pn
 			for (PatternNode child : pn.getAdjacency()) {
@@ -624,23 +623,25 @@ public class DurableTopkMatching {
 		List<Node> intersection = new ArrayList<Node>();
 		BitSet inter, labelLife = (BitSet) iQ.clone();
 
-		if (Config.LABEL_CHANGE) {
-			labelLife.and(n.getLabel(p.getLabel()));
+		labelLife.and(n.getLabel(p.getLabel()));
+		int count = 0, minDuration = 0;
 
-			if (continuously) {
-				BitSet shifted = (BitSet) labelLife.clone();
-				int count = 0;
+		if (!topkMatches.isEmpty())
+			minDuration = topkMatches.peek().getDuration();
 
-				while (!shifted.isEmpty()) {
-					shifted.and(shifted.get(1, shifted.length()));
-					count++;
-				}
+		if (continuously) {
+			BitSet shifted = (BitSet) labelLife.clone();
 
-				if (count < threshold)
-					return intersection;
+			while (!shifted.isEmpty()) {
+				shifted.and(shifted.get(1, shifted.length()));
+				count++;
+			}
 
-			} else if (labelLife.cardinality() < threshold)
+			if (count == 0 || (topkMatches.size() == k && count < minDuration))
 				return intersection;
+
+		} else if ((count = labelLife.cardinality()) == 0 || (topkMatches.size() == k && count < minDuration)) {
+			return intersection;
 		}
 
 		if (n.getAdjacency().size() < phi.get(chil.getID()).size()) {
@@ -652,22 +653,21 @@ public class DurableTopkMatching {
 					// intersection between edge lifespan and interval I
 					inter.and(e.getLifetime());
 
-					if (Config.LABEL_CHANGE)
-						inter.and(e.getTarget().getLabel(chil.getLabel()));
+					inter.and(e.getTarget().getLabel(chil.getLabel()));
 
 					if (continuously) {
 						BitSet shifted = (BitSet) inter.clone();
-						int count = 0;
+						count = 0;
 
 						while (!shifted.isEmpty()) {
 							shifted.and(shifted.get(1, shifted.length()));
 							count++;
 						}
 
-						if (count < threshold)
+						if (count == 0 || (topkMatches.size() == k && count < minDuration))
 							continue;
 
-					} else if (inter.cardinality() < threshold) {
+					} else if ((count = inter.cardinality()) == 0 || (topkMatches.size() == k && count < minDuration)) {
 						// check if target is pruned or it is not alive during
 						// interval
 						continue;
@@ -689,22 +689,21 @@ public class DurableTopkMatching {
 					// intersection between edge lifespan and interval I
 					inter.and(e.getLifetime());
 
-					if (Config.LABEL_CHANGE)
-						inter.and(ngb.getLabel(chil.getLabel()));
+					inter.and(ngb.getLabel(chil.getLabel()));
 
 					if (continuously) {
 						BitSet shifted = (BitSet) inter.clone();
-						int count = 0;
+						count = 0;
 
 						while (!shifted.isEmpty()) {
 							shifted.and(shifted.get(1, shifted.length()));
 							count++;
 						}
 
-						if (count < threshold)
+						if (count == 0 || (topkMatches.size() == k && count < minDuration))
 							continue;
 
-					} else if (inter.cardinality() < threshold) {
+					} else if ((count = inter.cardinality()) == 0 || (topkMatches.size() == k && count < minDuration)) {
 						// check if target is pruned or it is not alive
 						// during interval
 						continue;

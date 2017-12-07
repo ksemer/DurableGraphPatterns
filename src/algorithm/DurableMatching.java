@@ -326,9 +326,8 @@ public class DurableMatching {
 			if (rankingStrategy != Config.MIN_RANKING)
 				signAr[pn.getID()] = src.getID();
 
-			if (Config.LABEL_CHANGE)
-				// intersect labels lifespan
-				inter.and(src.getLabel(pn.getLabel()));
+			// intersect labels lifespan
+			inter.and(src.getLabel(pn.getLabel()));
 
 			// get adjacency of pn
 			for (PatternNode child : pn.getAdjacency()) {
@@ -520,24 +519,22 @@ public class DurableMatching {
 		List<Node> intersection = new ArrayList<Node>();
 		BitSet inter, labelLife = (BitSet) iQ.clone();
 
-		if (Config.LABEL_CHANGE) {
-			labelLife.and(n.getLabel(p.getLabel()));
+		labelLife.and(n.getLabel(p.getLabel()));
 
-			if (continuously) {
-				BitSet shifted = (BitSet) labelLife.clone();
-				int count = 0;
+		if (continuously) {
+			BitSet shifted = (BitSet) labelLife.clone();
+			int count = 0;
 
-				while (!shifted.isEmpty()) {
-					shifted.and(shifted.get(1, shifted.length()));
-					count++;
-				}
+			while (!shifted.isEmpty()) {
+				shifted.and(shifted.get(1, shifted.length()));
+				count++;
+			}
 
-				if (count < threshold)
-					return intersection;
-
-			} else if (labelLife.cardinality() < threshold)
+			if (count < threshold)
 				return intersection;
-		}
+
+		} else if (labelLife.cardinality() < threshold)
+			return intersection;
 
 		if (n.getAdjacency().size() < phi.get(chil.getID()).size()) {
 			for (Edge e : n.getAdjacency()) {
@@ -548,8 +545,7 @@ public class DurableMatching {
 					// intersection between edge lifespan and interval I
 					inter.and(e.getLifetime());
 
-					if (Config.LABEL_CHANGE)
-						inter.and(e.getTarget().getLabel(chil.getLabel()));
+					inter.and(e.getTarget().getLabel(chil.getLabel()));
 
 					if (continuously) {
 						BitSet shifted = (BitSet) inter.clone();
@@ -585,8 +581,7 @@ public class DurableMatching {
 					// intersection between edge lifespan and interval I
 					inter.and(e.getLifetime());
 
-					if (Config.LABEL_CHANGE)
-						inter.and(ngb.getLabel(chil.getLabel()));
+					inter.and(ngb.getLabel(chil.getLabel()));
 
 					if (continuously) {
 						BitSet shifted = (BitSet) inter.clone();

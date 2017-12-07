@@ -57,4 +57,14 @@ public class Edge implements Serializable {
 	public void updateLifetime(int t) {
 		lifespan.set(t);
 	}
+
+	/**
+	 * Update lifespan set true from start to end - 1
+	 * 
+	 * @param start
+	 * @param end
+	 */
+	public void updateLifetime(int start, int end) {
+		lifespan.set(start, end);
+	}
 }
