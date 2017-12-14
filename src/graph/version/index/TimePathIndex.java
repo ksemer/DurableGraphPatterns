@@ -1,4 +1,4 @@
-package algorithm;
+package graph.version.index;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -28,11 +28,13 @@ import utils.Storage;
  */
 public class TimePathIndex implements Serializable {
 
+	// ====================================================================
+
 	private static final long serialVersionUID = 1L;
 
-	// ====================================================================
 	private Map<Integer, Map<String, Set<Node>>> timePathIndexWT;
 	private Set<Node> set;
+
 	// ====================================================================
 
 	/**
@@ -42,6 +44,7 @@ public class TimePathIndex implements Serializable {
 	 * @throws Exception
 	 */
 	public TimePathIndex() {
+
 		this.timePathIndexWT = new HashMap<>();
 
 		for (int i = 0; i < Config.MAXIMUM_INTERVAL; i++)
@@ -57,6 +60,7 @@ public class TimePathIndex implements Serializable {
 	 * @throws IOException
 	 */
 	public Map<Integer, Map<String, Set<Node>>> createPathIndex(Graph g) throws IOException {
+
 		System.out.println("Time Path Index is running");
 		long time = System.currentTimeMillis();
 
@@ -91,6 +95,7 @@ public class TimePathIndex implements Serializable {
 		}
 
 		if (Config.SHOW_MEMORY) {
+
 			Runtime runtime = Runtime.getRuntime();
 
 			// Run the garbage collector
@@ -99,7 +104,7 @@ public class TimePathIndex implements Serializable {
 			// Calculate the used memory
 			long memory = runtime.totalMemory() - runtime.freeMemory();
 
-			System.out.println("Used memory with (TiPLa): " + Storage.bytesToMegabytes(memory));
+			System.out.println("TiPLa memory: " + Storage.bytesToMegabytes(memory));
 		}
 
 		System.out.println("TiPLa time: " + (System.currentTimeMillis() - time) + " (ms)");
@@ -115,13 +120,14 @@ public class TimePathIndex implements Serializable {
 	 */
 	private void traversePath(Node n, int max_depth) {
 
-		Deque<n_info> toBeVisited = new ArrayDeque<>();
+		Deque<NInfo> toBeVisited = new ArrayDeque<>();
 		List<Node> path;
 		BitSet l;
-		n_info info = new n_info(n, null, new BitSet(), 0);
+		NInfo info = new NInfo(n, null, new BitSet(), 0);
 		toBeVisited.add(info);
 
 		while (!toBeVisited.isEmpty()) {
+
 			info = toBeVisited.poll();
 
 			// if we are in the last node defined by the depth
@@ -133,6 +139,7 @@ public class TimePathIndex implements Serializable {
 					path = new ArrayList<>();
 
 					while (true) {
+
 						if (info.father == null) {
 							path.add(info.n);
 							break;
@@ -158,13 +165,18 @@ public class TimePathIndex implements Serializable {
 			for (Edge e : info.n.getAdjacency()) {
 
 				// if we are in src node we take as lifespan the edge's lifespan
-				if (info.father == null)
-					toBeVisited.add(new n_info(e.getTarget(), info, (BitSet) e.getLifetime().clone(), info.depth + 1));
-				else if (!info.father.n.equals(e.getTarget())) {
+				if (info.father == null) {
+
+					toBeVisited.add(new NInfo(e.getTarget(), info, (BitSet) e.getLifetime().clone(), info.depth + 1));
+
+				} else if (!info.father.n.equals(e.getTarget())) {
+
 					// else we and the edge's lifespan with the info.lifespan
 					l = (BitSet) info.lifespan.clone();
 					l.and(e.getLifetime());
-					toBeVisited.add(new n_info(e.getTarget(), info, l, info.depth + 1));
+
+					if (!l.isEmpty())
+						toBeVisited.add(new NInfo(e.getTarget(), info, l, info.depth + 1));
 				}
 			}
 		}
@@ -192,12 +204,15 @@ public class TimePathIndex implements Serializable {
 
 			if (!lifespan.isEmpty()) {
 
-				if (depth + 1 < path.size())
-					rec_labelComp(path, src, lifespan, label + "|" + l, depth + 1);
-				else {
+				if (depth + 1 < path.size()) {
+					if (depth == 0)
+						rec_labelComp(path, src, lifespan, label + "" + l, depth + 1);
+					else
+						rec_labelComp(path, src, lifespan, label + " " + l, depth + 1);
+				} else {
 					// i is the next label in path
 					// we use integers to denote labels
-					Path = label + "|" + l;
+					Path = label + " " + l;
 
 					for (Iterator<Integer> it = lifespan.stream().iterator(); it.hasNext();) {
 						int t = it.next();
@@ -211,20 +226,6 @@ public class TimePathIndex implements Serializable {
 					}
 				}
 			}
-		}
-	}
-
-	class n_info {
-		Node n;
-		n_info father;
-		BitSet lifespan;
-		int depth;
-
-		public n_info(Node n, n_info father, BitSet lifespan, int depth) {
-			this.n = n;
-			this.father = father;
-			this.lifespan = lifespan;
-			this.depth = depth;
 		}
 	}
 }

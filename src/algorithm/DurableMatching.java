@@ -98,9 +98,12 @@ public class DurableMatching {
 		timeLimit = System.currentTimeMillis();
 
 		// if TiPLa index is activated use the path filtering
-		if (Config.TIPLA_ENABLED)
-			filterCandidatesByPath(lvg, pg, iQ);
-		else
+		if (Config.TIPLA_ENABLED) {
+			if (Config.BLOOM_ENABLED)
+				filterCandidatesByPathBloom(lvg, pg, iQ);
+			else
+				filterCandidatesByPath(lvg, pg, iQ);
+		} else
 			filterCandidates(lvg, pg, iQ);
 
 		// threshold initialization
@@ -110,8 +113,6 @@ public class DurableMatching {
 		Map<Integer, Set<Node>> initC;
 		TreeMap<Integer, Set<Node>> tree;
 		NavigableMap<Integer, Set<Node>> submap;
-
-		System.out.println("--------------------");
 
 		while (threshold > 1) {
 			initC = new HashMap<>();
@@ -129,6 +130,7 @@ public class DurableMatching {
 
 			if (Config.DEBUG)
 				System.out.print("Threshold: " + threshold);
+
 			sizeOfRank++;
 
 			initC = DUALSIM(initC);
@@ -140,12 +142,14 @@ public class DurableMatching {
 				if (Config.DEBUG)
 					System.out.print("\tRecursions: " + recursionsPerTheta + "\n");
 			} catch (Exception e) {
-				System.out.println("\nTerminated Message: " + e.getMessage());
+				if (Config.DEBUG)
+					System.out.println("\nTerminated Message: " + e.getMessage());
 			}
 
 			// matches found
 			if (topMatches.size() != 0 && maxDuration >= threshold) {
-				System.out.println("Matches found: " + topMatches.size());
+				if (Config.DEBUG)
+					System.out.println("Matches found: " + topMatches.size());
 				break;
 			}
 
@@ -633,13 +637,6 @@ public class DurableMatching {
 	 * @param iQ
 	 */
 	private void filterCandidates(Graph lvg, PatternGraph pg, BitSet iQ) {
-		Map<Integer, Set<Node>> phi = new HashMap<Integer, Set<Node>>(pg.size());
-
-		// initialize
-		for (PatternNode pn : pg.getNodes()) {
-			phi.put(pn.getID(), new HashSet<Node>());
-			Rank.put(pn.getID(), new TreeMap<>());
-		}
 
 		// create TiNLa & CTiNLa indexes
 		if (Config.TINLA_ENABLED || Config.CTINLA_ENABLED)
@@ -650,13 +647,16 @@ public class DurableMatching {
 		int label, sc;
 		Node n;
 		Set<Node> pnode_candidates, current_candidates, candidates;
-		Map<Integer, Set<Node>> rankingBasedOnlifespanScore;
+		TreeMap<Integer, Set<Node>> rankingBasedOnlifespanScore;
 
 		// store for a label the candidate nodes
 		Map<Integer, Set<Node>> labelCandidates = new HashMap<>();
 
 		for (PatternNode pn : pg.getNodes()) {
-			pnode_candidates = phi.get(pn.getID());
+
+			pnode_candidates = new HashSet<Node>();
+			rankingBasedOnlifespanScore = new TreeMap<>();
+			Rank.put(pn.getID(), rankingBasedOnlifespanScore);
 
 			// get pattern's node label
 			label = pn.getLabel();
@@ -674,8 +674,6 @@ public class DurableMatching {
 				labelCandidates.put(label, new HashSet<>(pnode_candidates));
 			}
 
-			rankingBasedOnlifespanScore = Rank.get(pn.getID());
-
 			for (Iterator<Node> it = pnode_candidates.iterator(); it.hasNext();) {
 				n = it.next();
 
@@ -689,11 +687,22 @@ public class DurableMatching {
 					// for each r
 					for (int r = 0; r < Config.TINLA_R; r++) {
 
+						if (pn.getTiNLa(r) == null)
+							continue;
+
 						for (int l : pn.getTiNLa(r)) {
-							// if there is not a neighbor with that label or the
-							// lifespan is empty
-							// remove it
-							if ((lifespan = n.getTiNLa(r, l, lifespan)) == null || lifespan.isEmpty()) {
+
+							// if there isn't a neighbor with that label remove it
+
+							if (Config.BLOOM_ENABLED) {
+
+								if ((lifespan = n.getTiNLaBloom(r, l, lifespan)) == null || lifespan.isEmpty()) {
+									found = false;
+									it.remove();
+									break;
+								}
+
+							} else if ((lifespan = n.getTiNLa(r, l, lifespan)) == null || lifespan.isEmpty()) {
 								found = false;
 								it.remove();
 								break;
@@ -712,11 +721,23 @@ public class DurableMatching {
 					// for each r
 					for (int r = 0; r < Config.CTINLA_R; r++) {
 
+						if (pn.getCTiNLa(r).entrySet() == null)
+							continue;
+
 						for (Entry<Integer, Integer> l : pn.getCTiNLa(r).entrySet()) {
 
-							// if there is not a neighbor with that label
-							// remove it
-							if ((lifespan = n.getCTiNLa(r, l.getKey(), l.getValue(), lifespan)) == null
+							// if there is not a neighbor with that label remove it
+
+							if (Config.BLOOM_ENABLED) {
+
+								if ((lifespan = n.getCTiNLaBloom(r, l.getKey(), l.getValue(), lifespan)) == null
+										|| lifespan.isEmpty()) {
+									found = false;
+									it.remove();
+									break;
+								}
+
+							} else if ((lifespan = n.getCTiNLa(r, l.getKey(), l.getValue(), lifespan)) == null
 									|| lifespan.isEmpty()) {
 								found = false;
 								it.remove();
@@ -760,9 +781,6 @@ public class DurableMatching {
 	 */
 	private void filterCandidatesByPath(Graph lvg, PatternGraph pg, BitSet iQ) {
 
-		// create candidates set pattern node--> set of lvg nodes
-		Map<Integer, Set<Node>> candidates = new HashMap<Integer, Set<Node>>(pg.size());
-
 		// support variables
 		Set<Node> currentCandidates = null;
 		nodeScore sc;
@@ -772,15 +790,10 @@ public class DurableMatching {
 
 		// create pattern path index
 		pg.createPathIndex();
-
-		// initialize
-		for (PatternNode pn : pg.getNodes()) {
-			candidates.put(pn.getID(), new HashSet<Node>());
-			Rank.put(pn.getID(), new TreeMap<>());
-		}
-
+		
 		// for each pattern node
 		for (PatternNode pn : pg.getNodes()) {
+
 			// initiate score structure
 			score.put(pn, new HashMap<>());
 
@@ -820,14 +833,15 @@ public class DurableMatching {
 			}
 		}
 
-		// support variables
 		int durScore;
 		PatternNode pn;
 		TreeMap<Integer, Set<Node>> patternNodeRank;
 
 		for (Entry<PatternNode, Map<Integer, nodeScore>> entry : score.entrySet()) {
 			pn = entry.getKey();
-			patternNodeRank = Rank.get(pn.getID());
+
+			patternNodeRank = new TreeMap<>();
+			Rank.put(pn.getID(), patternNodeRank);
 
 			// for each candidate node
 			for (Entry<Integer, nodeScore> entry1 : entry.getValue().entrySet()) {
@@ -848,6 +862,82 @@ public class DurableMatching {
 	}
 
 	/**
+	 * Generates candidates per pattern node using TiPLaBloom
+	 * 
+	 * @param lvg
+	 * @param pg
+	 * @param iQ
+	 */
+	private void filterCandidatesByPathBloom(Graph lvg, PatternGraph pg, BitSet iQ) {
+
+		TreeMap<Integer, Set<Node>> rankingBasedOnlifespanScore;
+
+		// create pattern path index
+		pg.createPathIndex();
+
+		Set<Node> pnode_candidates, candidates, current_candidates;
+		int label, sc;
+		Node n;
+		BitSet lifespan;
+
+		// store for a label the candidate nodes
+		Map<Integer, Set<Node>> labelCandidates = new HashMap<>();
+
+		for (PatternNode pn : pg.getNodes()) {
+
+			pnode_candidates = new HashSet<Node>();
+
+			rankingBasedOnlifespanScore = new TreeMap<>();
+			Rank.put(pn.getID(), rankingBasedOnlifespanScore);
+
+			// get pattern's node label
+			label = pn.getLabel();
+
+			// if label exist then retrieve its candidates for all iQ
+			if ((candidates = labelCandidates.get(label)) != null)
+				pnode_candidates.addAll(candidates);
+			else {
+				// for each time instant get the candidates and add them in a
+				// set
+				for (Iterator<Integer> it = iQ.stream().iterator(); it.hasNext();)
+					pnode_candidates.addAll(lvg.getTiLaNodes(it.next(), label));
+
+				// candidates for label in iQ
+				labelCandidates.put(label, new HashSet<>(pnode_candidates));
+			}
+
+			for (Iterator<Node> it = pnode_candidates.iterator(); it.hasNext();) {
+
+				n = it.next();
+
+				lifespan = (BitSet) iQ.clone();
+				lifespan.and(n.getLabel(label));
+
+				// for all pattern node pn paths
+				for (String path : pg.getTiPLa(pn.getID())) {
+
+					if ((lifespan = n.TiPLaBloomContains(path, lifespan)).isEmpty()) {
+						it.remove();
+						break;
+					}
+				}
+
+				if ((sc = lifespan.cardinality()) < Config.AT_LEAST)
+					it.remove();
+				else {
+
+					if ((current_candidates = rankingBasedOnlifespanScore.get(sc)) == null) {
+						current_candidates = new HashSet<>();
+						rankingBasedOnlifespanScore.put(sc, current_candidates);
+					}
+					// add candidate node
+					current_candidates.add(n);
+				}
+			}
+		}
+	}
+
+	/**
 	 * Write Matches
 	 * 
 	 * @throws IOException
@@ -860,13 +950,22 @@ public class DurableMatching {
 		if (continuously)
 			outputPath += "cont_";
 
-		if (Config.TINLA_ENABLED)
-			outputPath += "tinla(" + Config.TINLA_R + ")_";
-		else if (Config.CTINLA_ENABLED)
-			outputPath += "ctinla(" + Config.CTINLA_R + ")_";
-		else if (Config.TIPLA_ENABLED)
-			outputPath += "tipla_";
-		else
+		if (Config.TINLA_ENABLED) {
+			if (Config.BLOOM_ENABLED)
+				outputPath += "tinlaBloom(" + Config.TINLA_R + ")_";
+			else
+				outputPath += "tinla(" + Config.TINLA_R + ")_";
+		} else if (Config.CTINLA_ENABLED) {
+			if (Config.BLOOM_ENABLED)
+				outputPath += "ctinlaBloom(" + Config.CTINLA_R + ")_";
+			else
+				outputPath += "ctinla(" + Config.CTINLA_R + ")_";
+		} else if (Config.TIPLA_ENABLED) {
+			if (Config.BLOOM_ENABLED)
+				outputPath += "tiplaBloom_";
+			else
+				outputPath += "tipla_";
+		} else
 			outputPath += "tila_";
 
 		if (rankingStrategy == Config.MAXBINARY_RANKING)

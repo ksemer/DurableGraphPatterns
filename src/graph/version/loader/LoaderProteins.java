@@ -28,8 +28,9 @@ public class LoaderProteins {
 	 * nodeID \t time and TiLa index
 	 * 
 	 * @throws IOException
+	 * @throws InterruptedException 
 	 */
-	public Graph loadDataset() throws IOException {
+	public Graph loadDataset() throws IOException, InterruptedException {
 
 		System.out.println("Creating Labeled Version Graph...");
 		BufferedReader br = new BufferedReader(new FileReader(Config.PATH_DATASET));

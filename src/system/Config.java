@@ -103,6 +103,9 @@ public final class Config {
 
 	// enable TiPLa
 	public static boolean TIPLA_ENABLED;
+	
+	// enable bloom for the time indexes
+	public static boolean BLOOM_ENABLED;
 
 	// depth for TiPLa
 	public static int TIPLA_MAX_DEPTH;
@@ -146,6 +149,8 @@ public final class Config {
 			PATH_LABELS = Settings.getProperty("LabelPath", "");
 			PATH_OUTPUT = Settings.getProperty("OutputPath", "");
 			PATH_QUERY = Settings.getProperty("QueryPath", "");
+			
+			SIZE_OF_LABELS = Integer.parseInt(Settings.getProperty("LabelsSize", ""));
 
 			THREADS = Integer.parseInt(Settings.getProperty("Threads", "1"));
 
@@ -165,6 +170,7 @@ public final class Config {
 			TINLA_ENABLED = Boolean.parseBoolean(Settings.getProperty("TiNLa", "false"));
 			CTINLA_ENABLED = Boolean.parseBoolean(Settings.getProperty("CTiNLa", "false"));
 			TIPLA_ENABLED = Boolean.parseBoolean(Settings.getProperty("TiPLa", "false"));
+			BLOOM_ENABLED = Boolean.parseBoolean(Settings.getProperty("Bloom", "false"));
 			DEBUG = Boolean.parseBoolean(Settings.getProperty("Debug", "false"));
 
 			K = Integer.parseInt(Settings.getProperty("k", "1"));

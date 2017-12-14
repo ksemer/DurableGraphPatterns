@@ -12,6 +12,7 @@ import algorithm.DurableMatching;
 import algorithm.DurableTopkMatching;
 import graph.pattern.PatternGraph;
 import graph.version.Graph;
+import utils.Storage;
 
 /**
  * Query class
@@ -19,9 +20,12 @@ import graph.version.Graph;
  * @author ksemer
  */
 public class Query {
+
 	// =================================================================
+
 	private Graph lvg;
 	private BitSet iQ;
+
 	// =================================================================
 
 	/**
@@ -37,7 +41,14 @@ public class Query {
 		this.iQ = iQ;
 	}
 
-	public void run() throws Exception {
+	/**
+	 * Run method
+	 * 
+	 * @return
+	 * 
+	 * @throws Exception
+	 */
+	public ExecutorService run() throws Exception {
 		String[] edge;
 		PatternGraph pg = null;
 		String line = null;
@@ -51,29 +62,35 @@ public class Query {
 		while ((line = br.readLine()) != null) {
 
 			if (line.contains("--") && pg != null) {
-				
+
 				if (Config.RUN_DURABLE_QUERIES) {
-					
+
 					if (Config.MAX_RANKING_ENABLED)
-						executor.submit(setCallableDurQ(lvg, pg, iQ, Config.MAX_RANKING));
+						executor.submit(
+								setCallableDurQ(lvg, (PatternGraph) Storage.deepClone(pg), iQ, Config.MAX_RANKING));
 
 					if (Config.MAXBINARY_RANKING_ENABLED)
-						executor.submit(setCallableDurQ(lvg, pg, iQ, Config.MAXBINARY_RANKING));
+						executor.submit(setCallableDurQ(lvg, (PatternGraph) Storage.deepClone(pg), iQ,
+								Config.MAXBINARY_RANKING));
 
 					if (Config.MIN_RANKING_ENABLED)
-						executor.submit(setCallableDurQ(lvg, pg, iQ, Config.MIN_RANKING));
+						executor.submit(
+								setCallableDurQ(lvg, (PatternGraph) Storage.deepClone(pg), iQ, Config.MIN_RANKING));
 				}
 
 				if (Config.RUN_TOPK_QUERIES) {
 
 					if (Config.MAX_RANKING_ENABLED)
-						executor.submit(setCallableTopkQ(lvg, pg, iQ, Config.MAX_RANKING));
+						executor.submit(
+								setCallableTopkQ(lvg, (PatternGraph) Storage.deepClone(pg), iQ, Config.MAX_RANKING));
 
 					if (Config.MAXBINARY_RANKING_ENABLED)
-						executor.submit(setCallableTopkQ(lvg, pg, iQ, Config.MAXBINARY_RANKING));
+						executor.submit(setCallableTopkQ(lvg, (PatternGraph) Storage.deepClone(pg), iQ,
+								Config.MAXBINARY_RANKING));
 
 					if (Config.MIN_RANKING_ENABLED)
-						executor.submit(setCallableTopkQ(lvg, pg, iQ, Config.MIN_RANKING));
+						executor.submit(
+								setCallableTopkQ(lvg, (PatternGraph) Storage.deepClone(pg), iQ, Config.MIN_RANKING));
 				}
 			} else if (line.contains("#")) {
 
@@ -113,6 +130,8 @@ public class Query {
 		br.close();
 
 		executor.shutdown();
+
+		return executor;
 	}
 
 	/**
@@ -130,6 +149,7 @@ public class Query {
 				new DurableMatching(lvg, pg, iQ, Config.CONTIGUOUS_MATCHES, rankingStrategy);
 			} catch (Exception e) {
 				System.err.println("Most: " + e.getMessage() + " Strategy: " + rankingStrategy + " Size: " + pg.size());
+				e.printStackTrace();
 			}
 			return true;
 		};
@@ -151,6 +171,7 @@ public class Query {
 				new DurableTopkMatching(lvg, pg, iQ, Config.CONTIGUOUS_MATCHES, Config.K, rankingStrategy);
 			} catch (Exception e) {
 				System.err.println("Topk: " + e.getMessage() + " Strategy: " + rankingStrategy + " Size: " + pg.size());
+				e.printStackTrace();
 			}
 			return true;
 		};

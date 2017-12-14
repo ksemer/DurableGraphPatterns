@@ -1,5 +1,6 @@
 package graph.pattern;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -14,14 +15,17 @@ import system.Config;
  * 
  * @author ksemer
  */
-public class PatternNode {
+public class PatternNode implements Serializable {
 
 	// =================================================================
+
+	private static final long serialVersionUID = 1L;
 	private int id;
 	private int label;
 	private List<PatternNode> adjacency;
 	private List<Set<Integer>> labelAdjacency;
 	private List<Map<Integer, Integer>> labelAdjacency_C;
+
 	// =================================================================
 
 	/**
@@ -31,6 +35,7 @@ public class PatternNode {
 	 * @param label
 	 */
 	public PatternNode(int id, int label) {
+
 		this.id = id;
 		this.label = label;
 		this.adjacency = new ArrayList<PatternNode>();
@@ -42,11 +47,14 @@ public class PatternNode {
 	 */
 	public void initializeNeighborIndexes() {
 		if (Config.TINLA_ENABLED) {
+
 			this.labelAdjacency = new ArrayList<>();
 
 			for (int i = 0; i < Config.TINLA_R; i++)
 				this.labelAdjacency.add(i, new HashSet<Integer>());
+
 		} else if (Config.CTINLA_ENABLED) {
+
 			this.labelAdjacency_C = new ArrayList<>();
 
 			for (int i = 0; i < Config.CTINLA_R; i++)

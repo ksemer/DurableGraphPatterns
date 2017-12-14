@@ -10,14 +10,16 @@ import java.util.BitSet;
  */
 public class Edge implements Serializable {
 
+	// =================================================================
+
 	private static final long serialVersionUID = 1L;
 
-	// =================================================================
 	// keeps the target node object
 	private Node trg_node;
 
 	// keeps the edge lifespan
 	private BitSet lifespan;
+
 	// =================================================================
 
 	/**

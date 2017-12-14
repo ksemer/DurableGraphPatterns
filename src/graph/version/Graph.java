@@ -9,9 +9,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import algorithm.TimePathIndex;
+import graph.version.index.TimePathBloomIndex;
+import graph.version.index.TimePathIndex;
+
+import java.util.Set;
+import java.util.Map.Entry;
+
 import system.Config;
 import utils.Storage;
 
@@ -22,12 +26,14 @@ import utils.Storage;
  */
 public class Graph implements Serializable {
 
-	private static final long serialVersionUID = 1L;
-
 	// =================================================================
+
+	private static final long serialVersionUID = 1L;
 	private Map<Integer, Node> nodes;
 	private List<Map<Integer, Set<Node>>> TiLa;
 	private Map<Integer, Map<String, Set<Node>>> TiPLa;
+	private TimePathBloomIndex TiPLaBloom;
+
 	// =================================================================
 
 	/**
@@ -98,6 +104,7 @@ public class Graph implements Serializable {
 		nodes.add(n);
 
 		if (Config.ENABLE_STAR_LABEL_PATTERNS) {
+
 			if ((nodes = TiLa.get(t).get(Config.STAR_LABEL)) == null) {
 				nodes = new HashSet<>();
 				TiLa.get(t).put(Config.STAR_LABEL, nodes);
@@ -107,10 +114,19 @@ public class Graph implements Serializable {
 		}
 	}
 
+	/**
+	 * Update TiLa add node in label set for range start to end
+	 * 
+	 * @param start
+	 * @param end
+	 * @param label
+	 * @param n
+	 */
 	public void udpateTiLa(int start, int end, int label, Node n) {
 		Set<Node> nodes;
 
 		for (int t = start; t < end; t++) {
+
 			if ((nodes = TiLa.get(t).get(label)) == null) {
 				nodes = new HashSet<>();
 				TiLa.get(t).put(label, nodes);
@@ -119,6 +135,7 @@ public class Graph implements Serializable {
 			nodes.add(n);
 
 			if (Config.ENABLE_STAR_LABEL_PATTERNS) {
+
 				if ((nodes = TiLa.get(t).get(Config.STAR_LABEL)) == null) {
 					nodes = new HashSet<>();
 					TiLa.get(t).put(Config.STAR_LABEL, nodes);
@@ -133,74 +150,200 @@ public class Graph implements Serializable {
 	 * Create TiPLa index
 	 * 
 	 * @throws IOException
+	 * @throws InterruptedException
 	 */
-	public void createTiPLa() throws IOException {
-		this.TiPLa = new TimePathIndex().createPathIndex(this);
+	public void createTiPLa() throws IOException, InterruptedException {
+
+		if (Config.BLOOM_ENABLED) {
+			TiPLaBloom = new TimePathBloomIndex();
+			TiPLaBloom.createIndex(this);
+		} else {
+			TiPLa = new TimePathIndex().createPathIndex(this);
+
+			if (Config.DEBUG) {
+				for (Entry<Integer, Map<String, Set<Node>>> entry : TiPLa.entrySet()) {
+
+					System.out.println("Time instance: " + entry.getKey());
+
+					for (String p : entry.getValue().keySet())
+						System.out.println(p);
+
+					System.out.println("------------------------");
+				}
+			}
+		}
 	}
 
 	/**
 	 * Create TiNLa && CTiNLa index
 	 */
 	public void createTimeNeighborIndex() {
+
 		int R = -1;
-		Node trg;
+
+		if (Config.BLOOM_ENABLED) {
+			createBloomTimeNeighborIndex();
+			return;
+		}
+
+		String in = "";
 
 		if (Config.TINLA_ENABLED) {
-			System.out.println("TiNLa(" + Config.TINLA_R + ") construction is starting...");
+			in = "TiNLa";
 			R = Config.TINLA_R;
 		} else if (Config.CTINLA_ENABLED) {
-			System.out.println("CTiNLa(" + Config.CTINLA_R + ") construction is starting...");
+			in = "CTiNLa";
 			R = Config.CTINLA_R;
 		}
+
+		System.out.println(in + "(" + R + ") construction is starting...");
 
 		long time = System.currentTimeMillis();
 
 		// for each r
 		for (int r = 0; r < R; r++) {
 
+			final int r_ = r;
+
 			// for all nodes
-			for (Node n : nodes.values()) {
+			nodes.values().parallelStream().forEach(n -> {
+
+				if (Config.TINLA_ENABLED)
+					n.initializeTiNLa(r_);
+				else if (Config.CTINLA_ENABLED)
+					n.initializeCTiNLa(r_);
+
+				Node trg;
 
 				// for each adjacent node
 				for (Edge e : n.getAdjacency()) {
 					trg = e.getTarget();
 
 					// update TiNLa and CTiNLa in radius = 1
-					if (r == 0) {
+					if (r_ == 0) {
+
 						if (Config.TINLA_ENABLED)
-							n.updateTiNLa(r, trg.getLabels());
+							n.updateTiNLa(r_, trg.getLabels());
 						else if (Config.CTINLA_ENABLED)
-							n.updateCTiNLa(r, trg.getLabels());
+							n.updateCTiNLa(r_, trg.getLabels());
+
+					} else {
+
+						// update TiNLa and CTiNLa in radius > 1
+						if (Config.TINLA_ENABLED)
+							n.updateTiNLa(r_, trg.getTiNLa().get(r_ - 1));
+						else if (Config.CTINLA_ENABLED)
+							n.updateCTiNLaR(r_, trg.getCTiNLa().get(r_ - 1));
+					}
+				}
+			});
+
+			if (Config.SHOW_MEMORY)
+				System.out.println(in + "(" + (r + 1) + ") memory: " + Storage.bytesToMegabytes(getMemory()));
+
+			System.out.println(in + "(" + (r + 1) + ") time: " + (System.currentTimeMillis() - time) + " (ms)");
+		}
+	}
+
+	/**
+	 * Create TiNLaBloom && CTiNLaBloom index
+	 */
+	private void createBloomTimeNeighborIndex() {
+
+		int R = -1;
+
+		String in = "", auxIn = "";
+
+		if (Config.TINLA_ENABLED) {
+			in = "TiNLaBloom";
+			auxIn = "TiNLa";
+			R = Config.TINLA_R;
+		} else if (Config.CTINLA_ENABLED) {
+			in = "CTiNLaBloom";
+			auxIn = "CTiNLa";
+			R = Config.CTINLA_R;
+		}
+
+		System.out.println(in + "(" + R + ") construction is starting...");
+
+		long time = System.currentTimeMillis();
+
+		// for each r
+		for (int r = 0; r < R; r++) {
+
+			final int r_ = r;
+
+			// for all nodes
+			nodes.values().parallelStream().forEach(n -> {
+
+				if (Config.TINLA_ENABLED)
+					n.initializeTiNLa(r_);
+				else if (Config.CTINLA_ENABLED)
+					n.initializeCTiNLa(r_);
+
+				Node trg;
+
+				// for each adjacent node
+				for (Edge e : n.getAdjacency()) {
+					trg = e.getTarget();
+
+					// update TiNLa and CTiNLa in radius = 1
+					if (r_ == 0) {
+						if (Config.TINLA_ENABLED)
+							n.updateTiNLa(r_, trg.getLabels());
+						else if (Config.CTINLA_ENABLED)
+							n.updateCTiNLa(r_, trg.getLabels());
 					} else {
 						// update TiNLa and CTiNLa in radius > 1
 						if (Config.TINLA_ENABLED)
-							n.updateTiNLa(r, trg.getTiNLa().get(r - 1));
+							n.updateTiNLa(r_, trg.getTiNLa().get(r_ - 1));
 						else if (Config.CTINLA_ENABLED)
-							n.updateCTiNLaR(r, trg.getCTiNLa().get(r - 1));
+							n.updateCTiNLaR(r_, trg.getCTiNLa().get(r_ - 1));
 					}
 				}
+			});
+
+			if (Config.SHOW_MEMORY)
+				System.out.println(auxIn + "(" + (r + 1) + ") memory: " + Storage.bytesToMegabytes(getMemory()));
+
+			System.out.println(auxIn + "(" + (r + 1) + ") time: " + (System.currentTimeMillis() - time) + " (ms)");
+
+			// create bloom
+			if (Config.TINLA_ENABLED) {
+
+				nodes.values().parallelStream().forEach(n -> {
+					n.createTiNLaBloom(r_);
+				});
+
+			} else if (Config.CTINLA_ENABLED) {
+
+				nodes.values().parallelStream().forEach(n -> {
+					n.createCTiNLaBloom(r_);
+				});
+
 			}
 
-			if (Config.SHOW_MEMORY) {
-				Runtime runtime = Runtime.getRuntime();
+			System.out.println(in + "(" + (r + 1) + ") time: " + (System.currentTimeMillis() - time) + " (ms)");
 
-				// Run the garbage collector
-				runtime.gc();
-
-				// Calculate the used memory
-				long memory = runtime.totalMemory() - runtime.freeMemory();
-
-				if (Config.TINLA_ENABLED)
-					System.out.println("Used memory with TiNLa(" + (r + 1) + "): " + Storage.bytesToMegabytes(memory));
-				else if (Config.CTINLA_ENABLED)
-					System.out.println("Used memory with CTiNLa(" + (r + 1) + "): " + Storage.bytesToMegabytes(memory));
-			}
-
-			if (Config.TINLA_ENABLED)
-				System.out.println("TiNLa(" + (r + 1) + ") time: " + (System.currentTimeMillis() - time) + " (ms)");
-			else if (Config.CTINLA_ENABLED)
-				System.out.println("CTiNLa(" + (r + 1) + ") time: " + (System.currentTimeMillis() - time) + " (ms)");
+			if (Config.SHOW_MEMORY)
+				System.out.println(in + "(" + (r + 1) + ") memory: " + Storage.bytesToMegabytes(getMemory()));
 		}
+
+		if (Config.TINLA_ENABLED) {
+
+			nodes.values().parallelStream().forEach(n -> {
+				n.clearTiNLa();
+			});
+
+		} else if (Config.CTINLA_ENABLED) {
+
+			nodes.values().parallelStream().forEach(n -> {
+				n.clearCTiNLa();
+			});
+		}
+
+		System.out
+				.println(in + "(" + ") memory without auxiliary structures: " + Storage.bytesToMegabytes(getMemory()));
 	}
 
 	/**
@@ -265,4 +408,18 @@ public class Graph implements Serializable {
 		return TiPLa;
 	}
 
+	/**
+	 * Return available memory
+	 * 
+	 * @return
+	 */
+	private long getMemory() {
+		Runtime runtime = Runtime.getRuntime();
+
+		// Run the garbage collector
+		runtime.gc();
+
+		// Calculate the used memory
+		return runtime.totalMemory() - runtime.freeMemory();
+	}
 }

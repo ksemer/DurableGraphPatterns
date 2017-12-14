@@ -1,7 +1,6 @@
 package system;
 
 import java.util.BitSet;
-import java.util.Map;
 
 import graph.version.Graph;
 import graph.version.loader.LoaderDBLP;
@@ -23,55 +22,36 @@ public class Main {
 	 * @param args
 	 * @throws Exception
 	 */
-	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws Exception {
 		Config.loadConfigs();
 		Graph lvg;
 
-		if (Config.LOAD_OBJECT) {
-			lvg = (Graph) Storage.deserialize(Config.PATH_OBJECT);
-			Config.PATH_DATASET = Config.PATH_OBJECT;
+		String dataset = Config.PATH_DATASET.toLowerCase();
 
-			// retrieve maximum interval
-			Config.MAXIMUM_INTERVAL = lvg.getTiLa().size();
-
-			// check if object contains the required index
-			if (Config.TINLA_ENABLED && lvg.getNodes().iterator().next().getTiNLa().size() != Config.TINLA_R) {
-				throw new Exception("TiNLa index radius of " + Config.TINLA_R + "does not exist in loaded object");
-			} else if (Config.CTINLA_ENABLED
-					&& lvg.getNodes().iterator().next().getCTiNLa().size() != Config.CTINLA_R) {
-				throw new Exception("CTiNLa index radius of " + Config.CTINLA_R + "does not exist in loaded object");
-			} else if (Config.TIPLA_ENABLED && lvg.getTiPLa().size() != Config.TIPLA_MAX_DEPTH) {
-				throw new Exception(
-						"TiPLa index depth of " + Config.TIPLA_MAX_DEPTH + "does not exist in loaded object");
-			}
-
-			if (Config.PATH_DATASET.toLowerCase().contains("dblp"))
-				LoaderDBLP.setAuthors((Map<Integer, String>) Storage.deserialize(Config.PATH_OBJECT + "_authors_ids"));
-		} else {
-			String dataset = Config.PATH_DATASET.toLowerCase();
-
-			// for dblp dataset
-			if (dataset.contains("dblp")) {
-				lvg = new LoaderDBLP().loadDataset();
-
-				if (Config.STORE_OBJECT)
-					Storage.serialize(LoaderDBLP.getAuthors(), Config.PATH_OBJECT + "_authors_ids");
-			}
-			// for yt dataset
-			else if (dataset.contains("yt"))
-				lvg = new LoaderYT().loadDataset();
-			else if (dataset.contains("wiki"))
-				lvg = new LoaderWikipedia().loadDataset();
-			// for proteins
-			else
-				lvg = new LoaderProteins().loadDataset();
+		// for dblp dataset
+		if (dataset.contains("dblp")) {
+			lvg = new LoaderDBLP().loadDataset();
 
 			if (Config.STORE_OBJECT)
-				Storage.serialize(lvg, Config.PATH_OBJECT);
+				Storage.serialize(LoaderDBLP.getAuthors(), Config.PATH_OBJECT + "_authors_ids");
 		}
+		// for yt dataset
+		else if (dataset.contains("yt"))
+			lvg = new LoaderYT().loadDataset();
+		else if (dataset.contains("wiki"))
+			lvg = new LoaderWikipedia().loadDataset();
+		// for proteins
+		else
+			lvg = new LoaderProteins().loadDataset();
+
+		if (Config.STORE_OBJECT)
+			Storage.serialize(lvg, Config.PATH_OBJECT);
+
+		if (Config.SIZE_OF_LABELS <= 0)
+			throw new Exception("The number of labels are zero");
 
 		if (Config.RUN_DURABLE_QUERIES || Config.RUN_TOPK_QUERIES) {
+
 			BitSet iQ = new BitSet(Config.MAXIMUM_INTERVAL);
 			iQ.set(0, Config.MAXIMUM_INTERVAL, true);
 

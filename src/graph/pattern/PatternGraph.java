@@ -1,5 +1,6 @@
 package graph.pattern;
 
+import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,8 +19,11 @@ import system.Config;
  * 
  * @author ksemer
  */
-public class PatternGraph {
+public class PatternGraph implements Serializable {
+
 	// =================================================================
+
+	private static final long serialVersionUID = 1L;
 
 	// pattern graph id
 	private int id;
@@ -51,7 +55,7 @@ public class PatternGraph {
 	}
 
 	/**
-	 * Add pattern node
+	 * Add a new pattern node
 	 * 
 	 * @param id
 	 * @param label
@@ -61,7 +65,7 @@ public class PatternGraph {
 	}
 
 	/**
-	 * Add patter edge
+	 * Add a new pattern edge
 	 * 
 	 * @param src
 	 * @param trg
@@ -127,7 +131,7 @@ public class PatternGraph {
 
 		// for each r
 		for (int r = 0; r < R; r++) {
-
+			
 			// for each pattern node
 			for (PatternNode pn : nodes) {
 
@@ -177,10 +181,12 @@ public class PatternGraph {
 	 * @return
 	 */
 	public void createPathIndex() {
+		
 		hasBeenVisited = new HashMap<>();
 		pathIndexWT = new HashMap<>();
 
 		for (int depth = Config.TIPLA_MAX_DEPTH; depth >= 1; depth--) {
+			
 			for (PatternNode n : nodes) {
 
 				if (!hasBeenVisited.containsKey(n.getID()))
@@ -207,6 +213,7 @@ public class PatternGraph {
 
 		// iterate path index
 		for (Entry<String, Set<PatternNode>> entry : pathIndexWT.entrySet()) {
+			
 			String path = entry.getKey();
 
 			// update in for each pattern node add the paths
@@ -215,6 +222,9 @@ public class PatternGraph {
 		}
 
 		if (Config.DEBUG) {
+			
+			System.out.println("Pattern Graph: "+ id);
+			
 			// print for each pattern node its paths
 			for (PatternNode p : nodes)
 				System.out.println("PNodeID: " + p.getID() + "->" + in.get(p.getID()));
@@ -265,6 +275,7 @@ public class PatternGraph {
 			}
 
 			for (PatternNode trg : info.n.getAdjacency()) {
+				
 				if (hasBeenVisited.get(n.getID())[trg.getID()])
 					continue;
 
@@ -288,12 +299,15 @@ public class PatternGraph {
 	private void rec_labelComp(List<PatternNode> path, PatternNode src, String label, int depth) {
 		PatternNode n = path.get(depth);
 
-		if (depth + 1 < path.size())
-			rec_labelComp(path, src, label + "|" + n.getLabel(), depth + 1);
-		else {
+		if (depth + 1 < path.size()) {
+			if (depth == 0)
+				rec_labelComp(path, src, "" + n.getLabel(), depth + 1);
+			else
+				rec_labelComp(path, src, label + " " + n.getLabel(), depth + 1);
+		} else {
 			// i is the next label in path
 			// we use integers to denote labels
-			String Path = label + "|" + n.getLabel();
+			String Path = label + " " + n.getLabel();
 
 			if ((set = pathIndexWT.get(Path)) == null) {
 				set = new HashSet<>();
@@ -324,5 +338,4 @@ public class PatternGraph {
 			this.depth = depth;
 		}
 	}
-
 }

@@ -9,7 +9,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
+import com.google.common.base.Charsets;
+import com.google.common.hash.BloomFilter;
+import com.google.common.hash.Funnels;
+
+import orestes.bloomfilter.FilterBuilder;
+import orestes.bloomfilter.memory.CountingBloomFilterMemory;
 import system.Config;
 
 /**
@@ -19,9 +26,9 @@ import system.Config;
  */
 public class Node implements Serializable {
 
-	private static final long serialVersionUID = 1L;
-
 	// =================================================================
+
+	private static final long serialVersionUID = 1L;
 
 	// node id
 	private int id;
@@ -35,8 +42,21 @@ public class Node implements Serializable {
 	// r -> label -> [lifespan]
 	private List<Map<Integer, BitSet>> TiNLa;
 
-	// r -> label -> [t--> c]
+	// r -> [bloom -> (t l]
+	private List<BloomFilter<String>> TiNLaBloom;
+
+	// r -> label -> [t --> c]
 	private List<Map<Integer, Map<Integer, Integer>>> CTiNLa;
+
+	// r -> [bloom -> t l c]
+	private List<CountingBloomFilterMemory<String>> CTiNLaBloom;
+
+	// bloom -> t p
+	private BloomFilter<String> TiPLaBloom;
+
+	// auxiliary structure for TiPLaBloom
+	private Map<Integer, Set<String>> TiPLaBloomAux;
+
 	// =================================================================
 
 	/**
@@ -45,6 +65,7 @@ public class Node implements Serializable {
 	 * @param id
 	 */
 	public Node(int id) {
+
 		this.id = id;
 		this.adjacencies = new HashMap<>();
 		this.labels = new HashMap<>();
@@ -52,18 +73,6 @@ public class Node implements Serializable {
 		if (Config.ENABLE_STAR_LABEL_PATTERNS) {
 			BitSet lifespan = new BitSet(Config.MAXIMUM_INTERVAL);
 			labels.put(Config.STAR_LABEL, lifespan);
-		}
-
-		if (Config.TINLA_ENABLED) {
-			TiNLa = new ArrayList<>(Config.TINLA_R);
-
-			for (int i = 0; i < Config.TINLA_R; i++)
-				TiNLa.add(i, new HashMap<Integer, BitSet>());
-		} else if (Config.CTINLA_ENABLED) {
-			CTiNLa = new ArrayList<>(Config.CTINLA_R);
-
-			for (int i = 0; i < Config.CTINLA_R; i++)
-				CTiNLa.add(i, new HashMap<>());
 		}
 	}
 
@@ -146,12 +155,39 @@ public class Node implements Serializable {
 	}
 
 	/**
+	 * Initialize TiNLa index for radius r
+	 * 
+	 * @param r
+	 */
+	public void initializeTiNLa(int r) {
+
+		if (TiNLa == null)
+			TiNLa = new ArrayList<>();
+
+		TiNLa.add(r, new HashMap<Integer, BitSet>());
+	}
+
+	/**
+	 * Initialize CTiNLa index for radius r
+	 * 
+	 * @param r
+	 */
+	public void initializeCTiNLa(int r) {
+
+		if (CTiNLa == null)
+			CTiNLa = new ArrayList<>();
+
+		CTiNLa.add(r, new HashMap<>());
+	}
+
+	/**
 	 * Update TiNLa(r) labels contain info from an adjacent node of (this) node
 	 * 
 	 * @param r
 	 * @param label
 	 */
 	public void updateTiNLa(int r, Map<Integer, BitSet> labels) {
+
 		int label;
 		BitSet lifespan, lifespanTrg;
 		Map<Integer, BitSet> TiNLaR = TiNLa.get(r);
@@ -181,6 +217,7 @@ public class Node implements Serializable {
 	 * @param labels
 	 */
 	public void updateCTiNLa(int r, Map<Integer, BitSet> labels) {
+
 		int t, label;
 		BitSet lifespan;
 		Integer tmpCounter;
@@ -220,6 +257,7 @@ public class Node implements Serializable {
 	 * @param trgCTiNLa
 	 */
 	public void updateCTiNLaR(int r, Map<Integer, Map<Integer, Integer>> trgCTiNLa) {
+
 		int label, t;
 		Integer tmpCounter;
 		Map<Integer, Integer> CTiNLa_l;
@@ -250,6 +288,113 @@ public class Node implements Serializable {
 					CTiNLa_l.put(t, tmpCounter.intValue() + et.getValue());
 			}
 		}
+	}
+
+	/**
+	 * Create TiNLaBloom in radius r
+	 * 
+	 * @param r
+	 */
+	public void createTiNLaBloom(int r) {
+
+		BitSet lifespan;
+		int times = 0;
+
+		if (TiNLaBloom == null)
+			TiNLaBloom = new ArrayList<>();
+
+		for (Entry<Integer, BitSet> entry : TiNLa.get(r).entrySet()) {
+			lifespan = entry.getValue();
+
+			for (int t = lifespan.nextSetBit(0); t != -1; t = lifespan.nextSetBit(t + 1)) {
+				times++;
+			}
+		}
+
+		TiNLaBloom.add(BloomFilter.create(Funnels.stringFunnel(Charsets.UTF_8), times, 0.01));
+
+		int label;
+		BloomFilter<String> bloom = TiNLaBloom.get(r);
+
+		for (Entry<Integer, BitSet> entry : TiNLa.get(r).entrySet()) {
+
+			label = entry.getKey();
+			lifespan = entry.getValue();
+
+			// for each active bit add t l
+			for (int t = lifespan.nextSetBit(0); t != -1; t = lifespan.nextSetBit(t + 1))
+				bloom.put(t + " " + label);
+		}
+	}
+
+	/**
+	 * Create CTiNLaBloom in radius r
+	 * 
+	 * @param r
+	 */
+	public void createCTiNLaBloom(int r) {
+
+		int times = 0, max = 0;
+
+		if (CTiNLaBloom == null)
+			CTiNLaBloom = new ArrayList<>();
+
+		for (Entry<Integer, Map<Integer, Integer>> entry : CTiNLa.get(r).entrySet()) {
+
+			times += entry.getValue().size();
+
+			for (Entry<Integer, Integer> entry1 : entry.getValue().entrySet()) {
+
+				if (max < entry1.getValue())
+					max = entry1.getValue();
+			}
+		}
+
+		int bloom_bits = (int) Math.ceil(Math.log(max) / Math.log(2));
+		CTiNLaBloom.add(new CountingBloomFilterMemory<String>(new FilterBuilder(times, 0.01).countingBits(bloom_bits)));
+
+		int label, t;
+		CountingBloomFilterMemory<String> bloom = CTiNLaBloom.get(r);
+
+		for (Entry<Integer, Map<Integer, Integer>> entry : CTiNLa.get(r).entrySet()) {
+
+			label = entry.getKey();
+
+			for (Entry<Integer, Integer> entry1 : entry.getValue().entrySet()) {
+
+				t = entry1.getKey();
+
+				// from 0 to counter add the t l into bloom
+				for (int i = 0; i < entry1.getValue(); i++) {
+					bloom.add(t + " " + label);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Create TiPLaBloom
+	 */
+	public void createTiPLaBloom() {
+
+		int totalEntries = 0;
+
+		for (Entry<Integer, Set<String>> entry : TiPLaBloomAux.entrySet())
+			totalEntries += entry.getValue().size();
+
+		TiPLaBloom = BloomFilter.create(Funnels.stringFunnel(Charsets.UTF_8), totalEntries, 0.01);
+
+		int t;
+
+		for (Entry<Integer, Set<String>> entry : TiPLaBloomAux.entrySet()) {
+
+			t = entry.getKey();
+
+			for (String p : entry.getValue())
+				TiPLaBloom.put(t + " " + p);
+		}
+
+		TiPLaBloomAux = null;
 	}
 
 	/**
@@ -308,6 +453,7 @@ public class Node implements Serializable {
 	 * @return
 	 */
 	public BitSet getTiNLa(int r, int label, BitSet lifespan) {
+
 		BitSet life;
 
 		if ((life = TiNLa.get(r).get(label)) == null)
@@ -337,32 +483,154 @@ public class Node implements Serializable {
 	}
 
 	/**
-	 * Given a cTiNLa index and a c value, return a lifespan that denotes that there
-	 * are at least c neighborhoods with the given label in the given lifespan
+	 * Return TiNLaBloom index
+	 * 
+	 * @return
+	 */
+	public List<BloomFilter<String>> getTiNLaBloom() {
+		return TiNLaBloom;
+	}
+
+	/**
+	 * Return CTiNLaBloom index
+	 * 
+	 * @return
+	 */
+	public List<CountingBloomFilterMemory<String>> getCTiNLaBloom() {
+		return CTiNLaBloom;
+	}
+
+	/**
+	 * Returns the time instances where there are at least c neighborhoods with the
+	 * given label
 	 * 
 	 * @param r
 	 * @param label
 	 * @param c
+	 * @param lifespan
 	 * @return
 	 */
 	public BitSet getCTiNLa(int r, int label, int c, BitSet lifespan) {
+
 		Map<Integer, Integer> cT;
 
 		if ((cT = CTiNLa.get(r).get(label)) == null)
 			return null;
 
-		int t;
 		BitSet life = (BitSet) lifespan.clone();
 
-		for (Iterator<Integer> it = lifespan.stream().iterator(); it.hasNext();) {
-			t = it.next();
+		for (int t = lifespan.nextSetBit(0); t != -1; t = lifespan.nextSetBit(t + 1)) {
 
-			// if node doesn't contain at least c neighbors then disable the t
-			// instant
+			// if node doesn't contain at least c neighbors then disable the time instant
 			if (cT.get(t) == null || cT.get(t) < c)
 				life.set(t, false);
 		}
 
 		return life;
+	}
+
+	/**
+	 * Returns the time instances where a neighbor with label l exists
+	 * 
+	 * @param r
+	 * @param label
+	 * @param lifespan
+	 * @return
+	 */
+	public BitSet getTiNLaBloom(int r, int label, BitSet lifespan) {
+
+		BitSet life = (BitSet) lifespan.clone();
+		BloomFilter<String> bloom;
+
+		if ((bloom = TiNLaBloom.get(r)) == null)
+			return null;
+
+		for (int t = lifespan.nextSetBit(0); t != -1; t = lifespan.nextSetBit(t + 1)) {
+
+			if (!bloom.mightContain(t + " " + label))
+				life.set(t, false);
+		}
+
+		return life;
+	}
+
+	/**
+	 * Returns the time instances where there are at least c neighborhoods with the
+	 * given label
+	 * 
+	 * @param r
+	 * @param label
+	 * @param c
+	 * @param lifespan
+	 * @return
+	 */
+	public BitSet getCTiNLaBloom(int r, int label, int c, BitSet lifespan) {
+
+		CountingBloomFilterMemory<String> cT;
+
+		if ((cT = CTiNLaBloom.get(r)) == null)
+			return null;
+
+		BitSet life = (BitSet) lifespan.clone();
+
+		for (int t = lifespan.nextSetBit(0); t != -1; t = lifespan.nextSetBit(t + 1)) {
+
+			// if node doesn't contain at least c neighbors then disable the time instant
+			if (!cT.contains(t + " " + label) || cT.getEstimatedCount(t + " " + label) < c)
+				life.set(t, false);
+		}
+
+		return life;
+	}
+
+	/**
+	 * Returns the time instances where the given label path exist
+	 * 
+	 * @param labelPath
+	 * @param lifespan
+	 * @return
+	 */
+	public BitSet TiPLaBloomContains(String labelPath, BitSet lifespan) {
+
+		BitSet life = (BitSet) lifespan.clone();
+
+		for (int t = lifespan.nextSetBit(0); t != -1; t = lifespan.nextSetBit(t + 1)) {
+
+			// if node does not contain the given label path then disable the time instant
+			if (!TiPLaBloom.mightContain(t + " " + labelPath))
+				life.set(t, false);
+		}
+
+		return life;
+	}
+
+	/**
+	 * Return TiPLaBloomAux
+	 *
+	 * @return
+	 */
+	public Map<Integer, Set<String>> getTiPLaAux() {
+		return TiPLaBloomAux;
+	}
+
+	/**
+	 * Remove TiNLa
+	 */
+	public void clearTiNLa() {
+		TiNLa = null;
+	}
+
+	/**
+	 * Remove CTiNLa
+	 */
+	public void clearCTiNLa() {
+		CTiNLa = null;
+	}
+
+	/**
+	 * Initialize auxiliary TiPLa bloom structure
+	 */
+	public void initiliazeTiPLaBloom() {
+		TiPLaBloomAux = new HashMap<>();
 	}
 }
