@@ -916,7 +916,7 @@ public class DurableMatching {
 				// for all pattern node pn paths
 				for (String path : pg.getTiPLa(pn.getID())) {
 
-					if ((lifespan = n.TiPLaBloomContains(path, lifespan)).isEmpty()) {
+					if ((lifespan = n.TiPLaBloomContains(path, lifespan)).isEmpty() || lifespan == null) {
 						it.remove();
 						break;
 					}
@@ -962,9 +962,9 @@ public class DurableMatching {
 				outputPath += "ctinla(" + Config.CTINLA_R + ")_";
 		} else if (Config.TIPLA_ENABLED) {
 			if (Config.BLOOM_ENABLED)
-				outputPath += "tiplaBloom_";
+				outputPath += "tiplaBloom(" + Config.TIPLA_MAX_DEPTH + ")_";
 			else
-				outputPath += "tipla_";
+				outputPath += "tipla(" + Config.TIPLA_MAX_DEPTH + ")_";
 		} else
 			outputPath += "tila_";
 

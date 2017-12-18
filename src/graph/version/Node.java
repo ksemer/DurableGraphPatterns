@@ -303,6 +303,10 @@ public class Node implements Serializable {
 		if (TiNLaBloom == null)
 			TiNLaBloom = new ArrayList<>();
 
+		// no neighbors exist, thus do not initialize a bloom
+		if (TiNLa.get(r).isEmpty())
+			return;
+
 		for (Entry<Integer, BitSet> entry : TiNLa.get(r).entrySet()) {
 			lifespan = entry.getValue();
 
@@ -339,6 +343,10 @@ public class Node implements Serializable {
 		if (CTiNLaBloom == null)
 			CTiNLaBloom = new ArrayList<>();
 
+		// no neighbors exist, thus do not initialize a bloom
+		if (CTiNLa.get(r).isEmpty())
+			return;
+
 		for (Entry<Integer, Map<Integer, Integer>> entry : CTiNLa.get(r).entrySet()) {
 
 			times += entry.getValue().size();
@@ -350,7 +358,13 @@ public class Node implements Serializable {
 			}
 		}
 
-		int bloom_bits = (int) Math.ceil(Math.log(max) / Math.log(2));
+		int bloom_bits;
+
+		if (max == 1)
+			bloom_bits = 1;
+		else
+			bloom_bits = (int) Math.ceil(Math.log(max) / Math.log(2));
+
 		CTiNLaBloom.add(new CountingBloomFilterMemory<String>(new FilterBuilder(times, 0.01).countingBits(bloom_bits)));
 
 		int label, t;
@@ -363,11 +377,7 @@ public class Node implements Serializable {
 			for (Entry<Integer, Integer> entry1 : entry.getValue().entrySet()) {
 
 				t = entry1.getKey();
-
-				// from 0 to counter add the t l into bloom
-				for (int i = 0; i < entry1.getValue(); i++) {
-					bloom.add(t + " " + label);
-				}
+				bloom.add(t + " " + label, entry1.getValue());
 			}
 		}
 	}
@@ -378,6 +388,12 @@ public class Node implements Serializable {
 	public void createTiPLaBloom() {
 
 		int totalEntries = 0;
+
+		// no paths exists, thus do not initialize a bloom
+		if (TiPLaBloomAux.isEmpty()) {
+			TiPLaBloomAux = null;
+			return;
+		}
 
 		for (Entry<Integer, Set<String>> entry : TiPLaBloomAux.entrySet())
 			totalEntries += entry.getValue().size();
@@ -395,53 +411,6 @@ public class Node implements Serializable {
 		}
 
 		TiPLaBloomAux = null;
-	}
-
-	/**
-	 * Returns node's id
-	 * 
-	 * @return
-	 */
-	public int getID() {
-		return id;
-	}
-
-	/**
-	 * Return label's lifespan
-	 * 
-	 * @param label
-	 * @return
-	 */
-	public BitSet getLabel(int label) {
-		return labels.get(label);
-	}
-
-	/**
-	 * Return labels structure
-	 * 
-	 * @return
-	 */
-	public Map<Integer, BitSet> getLabels() {
-		return labels;
-	}
-
-	/**
-	 * Return nodes's adjacency
-	 * 
-	 * @return
-	 */
-	public Collection<Edge> getAdjacency() {
-		return adjacencies.values();
-	}
-
-	/**
-	 * Return edge object for neighbor node n
-	 * 
-	 * @param n
-	 * @return
-	 */
-	public Edge getEdge(Node n) {
-		return adjacencies.get(n);
 	}
 
 	/**
@@ -539,11 +508,11 @@ public class Node implements Serializable {
 	 */
 	public BitSet getTiNLaBloom(int r, int label, BitSet lifespan) {
 
-		BitSet life = (BitSet) lifespan.clone();
-		BloomFilter<String> bloom;
-
-		if ((bloom = TiNLaBloom.get(r)) == null)
+		if (TiNLaBloom.size() - 1 < r)
 			return null;
+
+		BitSet life = (BitSet) lifespan.clone();
+		BloomFilter<String> bloom = TiNLaBloom.get(r);
 
 		for (int t = lifespan.nextSetBit(0); t != -1; t = lifespan.nextSetBit(t + 1)) {
 
@@ -566,17 +535,16 @@ public class Node implements Serializable {
 	 */
 	public BitSet getCTiNLaBloom(int r, int label, int c, BitSet lifespan) {
 
-		CountingBloomFilterMemory<String> cT;
-
-		if ((cT = CTiNLaBloom.get(r)) == null)
+		if (CTiNLaBloom.size() - 1 < r)
 			return null;
 
+		CountingBloomFilterMemory<String> cT = CTiNLaBloom.get(r);
 		BitSet life = (BitSet) lifespan.clone();
 
 		for (int t = lifespan.nextSetBit(0); t != -1; t = lifespan.nextSetBit(t + 1)) {
 
 			// if node doesn't contain at least c neighbors then disable the time instant
-			if (!cT.contains(t + " " + label) || cT.getEstimatedCount(t + " " + label) < c)
+			if (cT.getEstimatedCount(t + " " + label) < c)
 				life.set(t, false);
 		}
 
@@ -591,6 +559,9 @@ public class Node implements Serializable {
 	 * @return
 	 */
 	public BitSet TiPLaBloomContains(String labelPath, BitSet lifespan) {
+
+		if (TiPLaBloom == null)
+			return null;
 
 		BitSet life = (BitSet) lifespan.clone();
 
@@ -614,6 +585,24 @@ public class Node implements Serializable {
 	}
 
 	/**
+	 * Remove TiNLa for radius r
+	 * 
+	 * @param r
+	 */
+	public void clearTiNLa(int r) {
+		TiNLa.get(r).clear();
+	}
+
+	/**
+	 * Remove CTiNLa for radius r
+	 * 
+	 * @param r
+	 */
+	public void clearCTiNLa(int r) {
+		CTiNLa.get(r).clear();
+	}
+
+	/**
 	 * Remove TiNLa
 	 */
 	public void clearTiNLa() {
@@ -632,5 +621,52 @@ public class Node implements Serializable {
 	 */
 	public void initiliazeTiPLaBloom() {
 		TiPLaBloomAux = new HashMap<>();
+	}
+
+	/**
+	 * Returns node's id
+	 * 
+	 * @return
+	 */
+	public int getID() {
+		return id;
+	}
+
+	/**
+	 * Return label's lifespan
+	 * 
+	 * @param label
+	 * @return
+	 */
+	public BitSet getLabel(int label) {
+		return labels.get(label);
+	}
+
+	/**
+	 * Return labels structure
+	 * 
+	 * @return
+	 */
+	public Map<Integer, BitSet> getLabels() {
+		return labels;
+	}
+
+	/**
+	 * Return nodes's adjacency
+	 * 
+	 * @return
+	 */
+	public Collection<Edge> getAdjacency() {
+		return adjacencies.values();
+	}
+
+	/**
+	 * Return edge object for neighbor node n
+	 * 
+	 * @param n
+	 * @return
+	 */
+	public Edge getEdge(Node n) {
+		return adjacencies.get(n);
 	}
 }

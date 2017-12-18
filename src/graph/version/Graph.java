@@ -313,12 +313,18 @@ public class Graph implements Serializable {
 
 				nodes.values().parallelStream().forEach(n -> {
 					n.createTiNLaBloom(r_);
+					
+					if (r_ > 0)
+						n.clearTiNLa(r_ - 1);
 				});
 
 			} else if (Config.CTINLA_ENABLED) {
 
 				nodes.values().parallelStream().forEach(n -> {
 					n.createCTiNLaBloom(r_);
+					
+					if (r_ > 0)
+						n.clearCTiNLa(r_ - 1);
 				});
 
 			}
