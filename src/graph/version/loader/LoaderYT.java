@@ -134,7 +134,5 @@ public class LoaderYT {
 			}
 		}
 		br.close();
-
-		Config.SIZE_OF_LABELS = labels.size();
 	}
 }

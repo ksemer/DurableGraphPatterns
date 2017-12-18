@@ -112,7 +112,6 @@ public class LoaderProteins {
 		}
 		br.close();
 
-		Config.SIZE_OF_LABELS = labels.size();
 		System.out.println("Labels: " + labels.size());
 		System.out.println("Labels map:\n" + labels);
 

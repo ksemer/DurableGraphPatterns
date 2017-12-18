@@ -29,12 +29,8 @@ public class Main {
 		String dataset = Config.PATH_DATASET.toLowerCase();
 
 		// for dblp dataset
-		if (dataset.contains("dblp")) {
+		if (dataset.contains("dblp"))
 			lvg = new LoaderDBLP().loadDataset();
-
-			if (Config.STORE_OBJECT)
-				Storage.serialize(LoaderDBLP.getAuthors(), Config.PATH_OBJECT + "_authors_ids");
-		}
 		// for yt dataset
 		else if (dataset.contains("yt"))
 			lvg = new LoaderYT().loadDataset();
@@ -46,9 +42,6 @@ public class Main {
 
 		if (Config.STORE_OBJECT)
 			Storage.serialize(lvg, Config.PATH_OBJECT);
-
-		if (Config.SIZE_OF_LABELS <= 0)
-			throw new Exception("The number of labels are zero");
 
 		if (Config.RUN_DURABLE_QUERIES || Config.RUN_TOPK_QUERIES) {
 

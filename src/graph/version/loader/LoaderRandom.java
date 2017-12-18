@@ -3,8 +3,6 @@ package graph.version.loader;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
 
 import graph.version.Graph;
 import graph.version.Node;
@@ -23,7 +21,7 @@ public class LoaderRandom {
 	 * nodeID \t time
 	 * 
 	 * @throws IOException
-	 * @throws InterruptedException 
+	 * @throws InterruptedException
 	 */
 	public Graph loadDataset() throws IOException, InterruptedException {
 
@@ -98,7 +96,6 @@ public class LoaderRandom {
 		String[] token, attributes;
 		Node node;
 		int label;
-		Set<Integer> labels = new HashSet<>();
 
 		while ((line = br.readLine()) != null) {
 
@@ -117,7 +114,5 @@ public class LoaderRandom {
 			}
 		}
 		br.close();
-
-		Config.SIZE_OF_LABELS = labels.size();
 	}
 }

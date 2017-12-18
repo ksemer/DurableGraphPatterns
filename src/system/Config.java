@@ -65,9 +65,6 @@ public final class Config {
 	// maximum interval of graph lifespan
 	public static int MAXIMUM_INTERVAL;
 
-	// # of labels in the dataset
-	public static int SIZE_OF_LABELS;
-
 	// to ignore nodes with les than at least lifespans
 	public static int AT_LEAST;
 
@@ -149,8 +146,6 @@ public final class Config {
 			PATH_LABELS = Settings.getProperty("LabelPath", "");
 			PATH_OUTPUT = Settings.getProperty("OutputPath", "");
 			PATH_QUERY = Settings.getProperty("QueryPath", "");
-			
-			SIZE_OF_LABELS = Integer.parseInt(Settings.getProperty("LabelsSize", ""));
 
 			THREADS = Integer.parseInt(Settings.getProperty("Threads", "1"));
 

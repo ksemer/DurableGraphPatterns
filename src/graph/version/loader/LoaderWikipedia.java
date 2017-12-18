@@ -160,7 +160,5 @@ public class LoaderWikipedia {
 			lvg.udpateTiLa(firstTime, range, label, node);
 		}
 		br.close();
-
-		Config.SIZE_OF_LABELS = labels.size();
 	}
 }

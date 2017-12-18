@@ -114,9 +114,6 @@ public class LoaderDBLP {
 		// attributes for publications count
 		if ((line = br.readLine()).contains("Publications_count")) {
 
-			// update labels size
-			Config.SIZE_OF_LABELS = 4;
-
 			while ((line = br.readLine()) != null) {
 				String[] token = line.split("\\|");
 
@@ -183,8 +180,6 @@ public class LoaderDBLP {
 					lvg.udpateTiLa(value, conf, node);
 				}
 			}
-
-			Config.SIZE_OF_LABELS = conferences.size();
 		}
 
 		br.close();
