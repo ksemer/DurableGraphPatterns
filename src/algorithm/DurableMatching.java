@@ -906,21 +906,28 @@ public class DurableMatching {
 				labelCandidates.put(label, new HashSet<>(pnode_candidates));
 			}
 
+			boolean found = true;
+			
 			for (Iterator<Node> it = pnode_candidates.iterator(); it.hasNext();) {
 
 				n = it.next();
-
+				found = true;
+				
 				lifespan = (BitSet) iQ.clone();
 				lifespan.and(n.getLabel(label));
 
 				// for all pattern node pn paths
 				for (String path : pg.getTiPLa(pn.getID())) {
 
-					if ((lifespan = n.TiPLaBloomContains(path, lifespan)).isEmpty() || lifespan == null) {
+					if ((lifespan = n.TiPLaBloomContains(path, lifespan)) == null || lifespan.isEmpty()) {
 						it.remove();
+						found = false;
 						break;
 					}
 				}
+				
+				if (!found)
+					continue;
 
 				if ((sc = lifespan.cardinality()) < Config.AT_LEAST)
 					it.remove();

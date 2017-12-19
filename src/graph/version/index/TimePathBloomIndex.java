@@ -7,7 +7,6 @@ import java.util.BitSet;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,9 +43,8 @@ public class TimePathBloomIndex {
 
 		ExecutorService executor = Executors.newFixedThreadPool(Config.THREADS);
 
-		for (Node n : g.getNodes()) {
-			executor.submit(setCallablePath(n, Config.TIPLA_MAX_DEPTH));
-		}
+		for (Node n : g.getNodes())
+			executor.submit(setCallablePath(n));
 
 		executor.shutdown();
 
@@ -75,41 +73,15 @@ public class TimePathBloomIndex {
 	 * Callable for computing all paths to maxDepth
 	 * 
 	 * @param n
-	 * @param maxDepth
 	 * @return
 	 */
-	private Callable<?> setCallablePath(Node n, int maxDepth) {
+	private Callable<?> setCallablePath(Node n) {
 
 		Callable<?> c = () -> {
 			try {
 				n.initiliazeTiPLaBloom();
 
-				for (int depth = maxDepth; depth >= 1; depth--) {
-					traversePath(n, depth);
-				}
-
-				if (Config.ISDIRECTED) {
-
-					Set<String> paths;
-					Map<Integer, Set<String>> paths_per_t = n.getTiPLaAux();
-
-					// to contain also the paths of size 0, node label itself
-					for (Entry<Integer, BitSet> entry : n.getLabels().entrySet()) {
-						int label = entry.getKey();
-
-						for (Iterator<Integer> it = n.getLabel(label).stream().iterator(); it.hasNext();) {
-							int t = it.next();
-
-							if ((paths = paths_per_t.get(t)) == null) {
-								paths = new HashSet<>();
-								paths_per_t.put(t, paths);
-							}
-
-							paths.add("" + label);
-						}
-					}
-				}
-
+				traversePath(n);
 				n.createTiPLaBloom();
 
 			} catch (Exception e) {
@@ -121,15 +93,13 @@ public class TimePathBloomIndex {
 	}
 
 	/**
-	 * Traverse paths in depth
+	 * Traverse paths
 	 * 
 	 * @param n
-	 * @param maxDepth
 	 */
-	private void traversePath(Node n, int maxDepth) {
+	private void traversePath(Node n) {
 
 		Deque<NInfo> toBeVisited = new ArrayDeque<>();
-		List<Node> path;
 		BitSet l;
 		NInfo info = new NInfo(n, null, new BitSet(), 0);
 		toBeVisited.add(info);
@@ -139,55 +109,71 @@ public class TimePathBloomIndex {
 			info = toBeVisited.poll();
 
 			// if we are in the last node defined by the depth
-			if (info.depth == maxDepth) {
+			if (info.depth == Config.TIPLA_MAX_DEPTH) {
 
-				if (!info.lifespan.isEmpty()) {
+				if (!info.lifespan.isEmpty())
+					storePath(info);
 
-					BitSet life = null;
-					path = new ArrayList<>();
-
-					while (true) {
-
-						if (info.father == null) {
-							path.add(info.n);
-							break;
-						}
-
-						if (life == null)
-							life = info.lifespan;
-
-						// add the node to the path and update father
-						path.add(info.n);
-						info = info.father;
-					}
-
-					Collections.reverse(path);
-
-					// call recursive
-					rec_labelComp(path, path.get(0), life, "", 0);
-				}
 				continue;
 			}
+
+			boolean addNew = false;
 
 			// for all neighbors
 			for (Edge e : info.n.getAdjacency()) {
 
 				// if we are in src node we take as lifespan the edge's lifespan
 				if (info.father == null) {
-
+					addNew = true;
 					toBeVisited.add(new NInfo(e.getTarget(), info, (BitSet) e.getLifetime().clone(), info.depth + 1));
-
 				} else if (!info.father.n.equals(e.getTarget())) {
 
 					// else we and the edge's lifespan with the info.lifespan
 					l = (BitSet) info.lifespan.clone();
 					l.and(e.getLifetime());
 
-					if (!l.isEmpty())
+					if (!l.isEmpty()) {
+						addNew = true;
 						toBeVisited.add(new NInfo(e.getTarget(), info, l, info.depth + 1));
+					}
 				}
 			}
+
+			// if the path ends before maxDepth
+			if (!addNew && (info.depth + 1) < Config.TIPLA_MAX_DEPTH)
+				storePath(info);
 		}
+	}
+
+	/**
+	 * Corrects the order of the path and create the label paths
+	 * 
+	 * @param info
+	 */
+	private void storePath(NInfo info) {
+
+		BitSet life = null;
+		List<Node> path = new ArrayList<>();
+
+		while (true) {
+
+			if (info.father == null) {
+				path.add(info.n);
+				break;
+			}
+
+			if (life == null)
+				life = info.lifespan;
+
+			// add the node to the path and update father
+			path.add(info.n);
+			info = info.father;
+		}
+
+		Collections.reverse(path);
+
+		// call recursive
+		rec_labelComp(path, path.get(0), life, "", 0);
 	}
 
 	/**
@@ -215,12 +201,25 @@ public class TimePathBloomIndex {
 
 			if (!lifespan.isEmpty()) {
 
-				if (depth + 1 < path.size()) {
-					if (depth == 0)
-						rec_labelComp(path, src, lifespan, label + "" + l, depth + 1);
-					else
-						rec_labelComp(path, src, lifespan, label + " " + l, depth + 1);
+				if (depth == 0) {
+
+					// if we are in the last node defined by the depth
+					if (Config.ISDIRECTED) {
+
+						for (int t = lifespan.nextSetBit(0); t != -1; t = lifespan.nextSetBit(t + 1)) {
+
+							if ((paths = paths_per_t.get(t)) == null) {
+								paths = new HashSet<>();
+								paths_per_t.put(t, paths);
+							}
+
+							paths.add("" + l);
+						}
+					}
+
+					rec_labelComp(path, src, lifespan, label + "" + l, depth + 1);
 				} else {
+
 					// i is the next label in path
 					// we use integers to denote labels
 					Path = label + " " + l;
@@ -234,6 +233,9 @@ public class TimePathBloomIndex {
 
 						paths.add(Path);
 					}
+
+					if (depth != Config.TIPLA_MAX_DEPTH)
+						rec_labelComp(path, src, lifespan, Path, depth + 1);
 				}
 			}
 		}

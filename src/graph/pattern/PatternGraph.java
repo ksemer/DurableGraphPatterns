@@ -32,12 +32,9 @@ public class PatternGraph implements Serializable {
 	private List<PatternNode> nodes;
 
 	// TiPLa index
-	private Map<Integer, Set<String>> TiPLa;
+	private Map<Integer, List<String>> TiPLa;
 
 	private Map<String, Set<PatternNode>> pathIndexWT;
-
-	// temp variable
-	private Map<Integer, boolean[]> hasBeenVisited;
 
 	// help variables
 	private Set<PatternNode> set;
@@ -131,7 +128,7 @@ public class PatternGraph implements Serializable {
 
 		// for each r
 		for (int r = 0; r < R; r++) {
-			
+
 			// for each pattern node
 			for (PatternNode pn : nodes) {
 
@@ -181,39 +178,23 @@ public class PatternGraph implements Serializable {
 	 * @return
 	 */
 	public void createPathIndex() {
-		
-		hasBeenVisited = new HashMap<>();
+
 		pathIndexWT = new HashMap<>();
 
-		for (int depth = Config.TIPLA_MAX_DEPTH; depth >= 1; depth--) {
-			
-			for (PatternNode n : nodes) {
-
-				if (!hasBeenVisited.containsKey(n.getID()))
-					hasBeenVisited.put(n.getID(), new boolean[nodes.size()]);
-
-				traversePath(n, depth);
-			}
-		}
+		for (PatternNode n : nodes)
+			traversePath(n);
 
 		// key -> pattern node id,
 		// value -> set of string which includes all the paths from pattern node
 		Map<Integer, Set<String>> in = new HashMap<>();
 
 		// initialize
-		for (PatternNode p : nodes) {
+		for (PatternNode p : nodes)
 			in.put(p.getID(), new HashSet<>());
-
-			if (Config.ISDIRECTED) {
-				// path size of 0 (contains only it self)
-				if (p.getAdjacency().isEmpty())
-					in.get(p.getID()).add("" + p.getLabel());
-			}
-		}
 
 		// iterate path index
 		for (Entry<String, Set<PatternNode>> entry : pathIndexWT.entrySet()) {
-			
+
 			String path = entry.getKey();
 
 			// update in for each pattern node add the paths
@@ -221,28 +202,35 @@ public class PatternGraph implements Serializable {
 				in.get(p.getID()).add(path);
 		}
 
-		if (Config.DEBUG) {
-			
-			System.out.println("Pattern Graph: "+ id);
-			
-			// print for each pattern node its paths
-			for (PatternNode p : nodes)
-				System.out.println("PNodeID: " + p.getID() + "->" + in.get(p.getID()));
+		TiPLa = new HashMap<>();
+		List<String> paths;
+
+		// sort paths by length, longer paths should be first since shorter paths are
+		// subsets of the longest
+		for (PatternNode p : nodes) {
+			paths = new ArrayList<>(in.get(p.getID()));
+			paths.sort((first, second) -> Integer.compare(second.length(), first.length()));
+			TiPLa.put(p.getID(), paths);
 		}
 
-		TiPLa = in;
+		if (Config.DEBUG) {
+
+			System.out.println("Pattern Graph: " + id);
+
+			// print for each pattern node its paths
+			for (PatternNode p : nodes)
+				System.out.println("PNodeID: " + p.getID() + "->" + TiPLa.get(p.getID()));
+		}
 	}
 
 	/**
 	 * TraversePath
 	 * 
 	 * @param n
-	 * @param max_depth
 	 */
-	private void traversePath(PatternNode n, int max_depth) {
+	private void traversePath(PatternNode n) {
 
 		Deque<n_info> toBeVisited = new ArrayDeque<>();
-		List<PatternNode> path;
 
 		n_info info = new n_info(n, null, 0);
 		toBeVisited.add(info);
@@ -250,71 +238,72 @@ public class PatternGraph implements Serializable {
 		while (!toBeVisited.isEmpty()) {
 			info = toBeVisited.poll();
 
-			if (info.depth == max_depth) {
-				path = new ArrayList<>();
+			// if we are in the last node defined by the depth
+			if (info.depth == Config.TIPLA_MAX_DEPTH) {
 
-				while (true) {
-					if (info.father == null) {
-						if (max_depth == Config.TIPLA_MAX_DEPTH)
-							hasBeenVisited.get(n.getID())[path.get(1).getID()] = true;
-
-						path.add(info.n);
-						break;
-					}
-
-					path.add(info.n);
-					info = info.father;
-				}
-
-				Collections.reverse(path);
-
-				// call recursive
-				rec_labelComp(path, path.get(0), "", 0);
-
+				storePath(info);
 				continue;
 			}
 
+			boolean addNew = false;
+
 			for (PatternNode trg : info.n.getAdjacency()) {
-				
-				if (hasBeenVisited.get(n.getID())[trg.getID()])
-					continue;
 
 				if (info.father == null) {
+					addNew = true;
 					toBeVisited.add(new n_info(trg, info, info.depth + 1));
 				} else if (!info.father.n.equals(trg)) {
+					addNew = true;
 					toBeVisited.add(new n_info(trg, info, info.depth + 1));
 				}
 			}
+
+			// if the path ends before maxDepth
+			if (!addNew && (info.depth + 1) < Config.TIPLA_MAX_DEPTH)
+				storePath(info);
 		}
 	}
 
 	/**
-	 * Recursive function
+	 * Corrects the order of the path and create the label paths
 	 * 
-	 * @param path
-	 * @param src
-	 * @param label
-	 * @param depth
+	 * @param info
 	 */
-	private void rec_labelComp(List<PatternNode> path, PatternNode src, String label, int depth) {
-		PatternNode n = path.get(depth);
+	private void storePath(n_info info) {
+		List<PatternNode> path = new ArrayList<>();
 
-		if (depth + 1 < path.size()) {
-			if (depth == 0)
-				rec_labelComp(path, src, "" + n.getLabel(), depth + 1);
-			else
-				rec_labelComp(path, src, label + " " + n.getLabel(), depth + 1);
-		} else {
-			// i is the next label in path
-			// we use integers to denote labels
-			String Path = label + " " + n.getLabel();
+		while (true) {
 
-			if ((set = pathIndexWT.get(Path)) == null) {
-				set = new HashSet<>();
-				pathIndexWT.put(Path, set);
+			if (info.father == null) {
+				path.add(info.n);
+				break;
 			}
 
-			set.add(src);
+			// add the node to the path and update father
+			path.add(info.n);
+			info = info.father;
+		}
+
+		Collections.reverse(path);
+
+		String labelPath = "";
+
+		for (int d = 0; d < path.size(); d++) {
+
+			labelPath += path.get(d).getLabel();
+
+			if (Config.ISDIRECTED || d > 0) {
+
+				if ((set = pathIndexWT.get(labelPath)) == null) {
+					set = new HashSet<>();
+					pathIndexWT.put(labelPath, set);
+				}
+
+				// add node that has the computed labelPath
+				set.add(path.get(0));
+			}
+
+			labelPath += " ";
 		}
 	}
 
@@ -323,7 +312,7 @@ public class PatternGraph implements Serializable {
 	 * 
 	 * @return
 	 */
-	public Set<String> getTiPLa(int id) {
+	public List<String> getTiPLa(int id) {
 		return TiPLa.get(id);
 	}
 
