@@ -234,7 +234,7 @@ public class TimePathBloomIndex {
 						paths.add(Path);
 					}
 
-					if (depth != Config.TIPLA_MAX_DEPTH)
+					if (depth + 1 != path.size())
 						rec_labelComp(path, src, lifespan, Path, depth + 1);
 				}
 			}

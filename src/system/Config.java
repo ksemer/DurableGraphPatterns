@@ -26,12 +26,6 @@ public final class Config {
 
 	// ====================================================
 
-	// enable load of serialized graph and index object
-	public static boolean LOAD_OBJECT;
-
-	// store all objects in a file
-	public static boolean STORE_OBJECT;
-
 	// path of file that stores all objects
 	public static String PATH_OBJECT;
 
@@ -100,7 +94,7 @@ public final class Config {
 
 	// enable TiPLa
 	public static boolean TIPLA_ENABLED;
-	
+
 	// enable bloom for the time indexes
 	public static boolean BLOOM_ENABLED;
 
@@ -150,8 +144,6 @@ public final class Config {
 			THREADS = Integer.parseInt(Settings.getProperty("Threads", "1"));
 
 			ISDIRECTED = Boolean.parseBoolean(Settings.getProperty("Directed", "false"));
-			LOAD_OBJECT = Boolean.parseBoolean(Settings.getProperty("LoadObject", "false"));
-			STORE_OBJECT = Boolean.parseBoolean(Settings.getProperty("StoreObject", "false"));
 
 			RUN_TOPK_QUERIES = Boolean.parseBoolean(Settings.getProperty("TopkQueries", "false"));
 			RUN_DURABLE_QUERIES = Boolean.parseBoolean(Settings.getProperty("DurableQueries", "false"));
@@ -197,9 +189,6 @@ public final class Config {
 				stop = true;
 			} else if (MAXIMUM_INTERVAL == -1) {
 				_log.log(Level.SEVERE, "Interval is empty or wrong configured." + ". Abborted.", new Exception());
-				stop = true;
-			} else if ((LOAD_OBJECT || STORE_OBJECT) && PATH_OBJECT.isEmpty()) {
-				_log.log(Level.SEVERE, "object path is empty while load/store object is true", new Exception());
 				stop = true;
 			} else if (TINLA_ENABLED && TINLA_R == 0) {
 				_log.log(Level.SEVERE, "TiNLa settings are wrong", new Exception());

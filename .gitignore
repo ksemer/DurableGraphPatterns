@@ -46,3 +46,9 @@ Network Trash Folder
 Temporary Items
 .apdisk
 /bin/
+src/algorithm/BaseLineMatching.java
+src/algorithm/BaseLineDurableTopkMatching.java
+src/experiments/Baseline.java
+dblp_publications_labels
+dblp_authors_ids
+dblp

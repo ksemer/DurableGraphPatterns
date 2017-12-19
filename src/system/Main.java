@@ -7,7 +7,6 @@ import graph.version.loader.LoaderDBLP;
 import graph.version.loader.LoaderProteins;
 import graph.version.loader.LoaderWikipedia;
 import graph.version.loader.LoaderYT;
-import utils.Storage;
 
 /**
  * Main class
@@ -39,9 +38,6 @@ public class Main {
 		// for proteins
 		else
 			lvg = new LoaderProteins().loadDataset();
-
-		if (Config.STORE_OBJECT)
-			Storage.serialize(lvg, Config.PATH_OBJECT);
 
 		if (Config.RUN_DURABLE_QUERIES || Config.RUN_TOPK_QUERIES) {
 
