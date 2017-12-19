@@ -156,13 +156,15 @@ public class DurableTopkMatching {
 			initC = DUALSIM(initC);
 
 			try {
+
 				recursionsPerTheta = 0;
 				searchPattern(initC, 0);
 
 				if (Config.DEBUG)
 					System.out.println("\tRecursions: " + recursionsPerTheta + "\n");
+
 			} catch (Exception e) {
-				
+
 				if (Config.DEBUG)
 					System.out.println("Terminated Message: " + e.getMessage());
 
@@ -173,9 +175,8 @@ public class DurableTopkMatching {
 
 			// top-k heap is full & shortest duration >= current threshold
 			// there are two cases now
-			if (topkMatches.size() == k && topkMatches.peek().getDuration() >= minimumCheckedTheta) {
+			if (topkMatches.size() == k && topkMatches.peek().getDuration() >= minimumCheckedTheta)
 				break;
-			}
 
 			// get new threshold
 			if (rankingStrategy == Config.MAXBINARY_RANKING)
@@ -481,26 +482,27 @@ public class DurableTopkMatching {
 
 					// add the match
 					topkMatches.offer(new Match(duration, inter, match));
+
 				} else if (duration < minDuration)
 					return;
 
 				// update threshold
 				if (threshold <= (minDuration = topkMatches.peek().getDuration())) {
 
-					if (threshold < minDuration)
-						threshold = minDuration;
-					else
+					if (threshold == minDuration)
 						threshold++;
+					else
+						threshold = minDuration;
 
 					// if threshold minDuration + 1 has already been checked
 					if (durationMaxRanking.contains(threshold)) {
 						// top-k solution has been found
 						throw new Exception("Top-k found");
+					} else {
+						// inform structure that this threshold has been chosen
+						durationMaxRanking.add(threshold);
 					}
 				}
-
-				// inform structure that this threshold has been chosen
-				durationMaxRanking.add(threshold);
 			}
 		}
 	}
@@ -629,28 +631,26 @@ public class DurableTopkMatching {
 		BitSet inter, labelLife = (BitSet) iQ.clone();
 
 		labelLife.and(n.getLabel(p.getLabel()));
-		int count = 0, minDuration = 0;
-
-		if (!topkMatches.isEmpty())
-			minDuration = topkMatches.peek().getDuration();
 
 		if (continuously) {
 			BitSet shifted = (BitSet) labelLife.clone();
+			int count = 0;
 
 			while (!shifted.isEmpty()) {
 				shifted.and(shifted.get(1, shifted.length()));
 				count++;
 			}
 
-			if (count == 0 || (topkMatches.size() == k && count < minDuration))
+			if (count < threshold)
 				return intersection;
 
-		} else if ((count = labelLife.cardinality()) == 0 || (topkMatches.size() == k && count < minDuration)) {
+		} else if (labelLife.cardinality() < threshold)
 			return intersection;
-		}
 
 		if (n.getAdjacency().size() < phi.get(chil.getID()).size()) {
+
 			for (Edge e : n.getAdjacency()) {
+
 				if (phi.get(chil.getID()).contains(e.getTarget())) {
 
 					inter = (BitSet) labelLife.clone();
@@ -662,17 +662,17 @@ public class DurableTopkMatching {
 
 					if (continuously) {
 						BitSet shifted = (BitSet) inter.clone();
-						count = 0;
+						int count = 0;
 
 						while (!shifted.isEmpty()) {
 							shifted.and(shifted.get(1, shifted.length()));
 							count++;
 						}
 
-						if (count == 0 || (topkMatches.size() == k && count < minDuration))
+						if (count < threshold)
 							continue;
 
-					} else if ((count = inter.cardinality()) == 0 || (topkMatches.size() == k && count < minDuration)) {
+					} else if (inter.cardinality() < threshold) {
 						// check if target is pruned or it is not alive during
 						// interval
 						continue;
@@ -698,17 +698,17 @@ public class DurableTopkMatching {
 
 					if (continuously) {
 						BitSet shifted = (BitSet) inter.clone();
-						count = 0;
+						int count = 0;
 
 						while (!shifted.isEmpty()) {
 							shifted.and(shifted.get(1, shifted.length()));
 							count++;
 						}
 
-						if (count == 0 || (topkMatches.size() == k && count < minDuration))
+						if (count < threshold)
 							continue;
 
-					} else if ((count = inter.cardinality()) == 0 || (topkMatches.size() == k && count < minDuration)) {
+					} else if (inter.cardinality() < threshold) {
 						// check if target is pruned or it is not alive
 						// during interval
 						continue;
@@ -1025,7 +1025,7 @@ public class DurableTopkMatching {
 				// for all pattern node pn paths
 				for (String path : pg.getTiPLa(pn.getID())) {
 
-					if ((lifespan = n.TiPLaBloomContains(path, lifespan)).isEmpty()) {
+					if ((lifespan = n.TiPLaBloomContains(path, lifespan)).isEmpty() || lifespan == null) {
 						it.remove();
 						break;
 					}
@@ -1071,9 +1071,9 @@ public class DurableTopkMatching {
 				outputPath += "ctinla(" + Config.CTINLA_R + ")_";
 		} else if (Config.TIPLA_ENABLED) {
 			if (Config.BLOOM_ENABLED)
-				outputPath += "tiplaBloom_";
+				outputPath += "tiplaBloom(" + Config.TIPLA_MAX_DEPTH + ")_";
 			else
-				outputPath += "tipla_";
+				outputPath += "tipla(" + Config.TIPLA_MAX_DEPTH + ")_";
 		} else
 			outputPath += "tila_";
 
