@@ -146,7 +146,7 @@ public class TimePathIndex implements Serializable {
 	 */
 	private void storePath(NInfo info) {
 
-		BitSet life = null;
+		BitSet life = info.lifespan;
 		List<Node> path = new ArrayList<>();
 
 		while (true) {
@@ -155,9 +155,6 @@ public class TimePathIndex implements Serializable {
 				path.add(info.n);
 				break;
 			}
-
-			if (life == null)
-				life = info.lifespan;
 
 			// add the node to the path and update father
 			path.add(info.n);
@@ -188,8 +185,12 @@ public class TimePathIndex implements Serializable {
 		for (Entry<Integer, BitSet> entry : n.getLabels().entrySet()) {
 			int l = entry.getKey();
 
-			lifespan = (BitSet) life.clone();
-			lifespan.and(entry.getValue());
+			if (life.isEmpty())
+				lifespan = (BitSet) entry.getValue().clone();
+			else {
+				lifespan = (BitSet) life.clone();
+				lifespan.and(entry.getValue());
+			}
 
 			if (!lifespan.isEmpty()) {
 
@@ -209,7 +210,8 @@ public class TimePathIndex implements Serializable {
 						}
 					}
 
-					rec_labelComp(path, src, lifespan, label + "" + l, depth + 1);
+					if (depth + 1 != path.size())
+						rec_labelComp(path, src, lifespan, label + "" + l, depth + 1);
 				} else {
 
 					// i is the next label in path

@@ -175,7 +175,7 @@ public class DurableTopkMatching {
 
 			// top-k heap is full & shortest duration >= current threshold
 			// there are two cases now
-			if (topkMatches.size() == k && topkMatches.peek().getDuration() >= minimumCheckedTheta)
+			if (topkMatches == null || topkMatches.size() == k && topkMatches.peek().getDuration() >= minimumCheckedTheta)
 				break;
 
 			// get new threshold
@@ -194,7 +194,8 @@ public class DurableTopkMatching {
 		}
 
 		// write matches
-		writeTopMatches();
+		if (topkMatches != null)
+			writeTopMatches();
 	}
 
 	/**
@@ -349,6 +350,7 @@ public class DurableTopkMatching {
 		recursionsPerTheta++;
 
 		if (System.currentTimeMillis() > (timeLimit + Config.TIME_LIMIT * 1000)) {
+			writeTopMatches();
 			throw new Exception("Reach time limit");
 		} else if (depth == pg.size() && c.size() != 0) {
 			computeMatchTime(c);
@@ -1210,6 +1212,7 @@ public class DurableTopkMatching {
 
 		w.write(result);
 		w.close();
+		topkMatches = null;
 	}
 
 	/**

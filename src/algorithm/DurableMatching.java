@@ -163,7 +163,8 @@ public class DurableMatching {
 		}
 
 		// write matches
-		writeTopMatches();
+		if (topMatches != null)
+			writeTopMatches();
 	}
 
 	/**
@@ -279,9 +280,11 @@ public class DurableMatching {
 		recursionsPerTheta++;
 
 		if (System.currentTimeMillis() > (timeLimit + Config.TIME_LIMIT * 1000)) {
+			writeTopMatches();
 			throw new Exception("Reach time limit");
 		} else if (topMatches.size() == Config.MAX_MATCHES && maxDuration >= threshold
 				&& rankingStrategy != Config.MIN_RANKING) {
+			writeTopMatches();
 			throw new Exception("Reach maxMatches");
 		} else if (depth == pg.size() && c.size() != 0) {
 			computeMatchTime(c);
@@ -790,7 +793,7 @@ public class DurableMatching {
 
 		// create pattern path index
 		pg.createPathIndex();
-		
+
 		// for each pattern node
 		for (PatternNode pn : pg.getNodes()) {
 
@@ -907,12 +910,12 @@ public class DurableMatching {
 			}
 
 			boolean found = true;
-			
+
 			for (Iterator<Node> it = pnode_candidates.iterator(); it.hasNext();) {
 
 				n = it.next();
 				found = true;
-				
+
 				lifespan = (BitSet) iQ.clone();
 				lifespan.and(n.getLabel(label));
 
@@ -925,7 +928,7 @@ public class DurableMatching {
 						break;
 					}
 				}
-				
+
 				if (!found)
 					continue;
 
@@ -1100,6 +1103,7 @@ public class DurableMatching {
 		w.write(result);
 		w.flush();
 		w.close();
+		topMatches = null;
 	}
 
 	/**
