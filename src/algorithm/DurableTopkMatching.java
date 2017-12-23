@@ -175,7 +175,8 @@ public class DurableTopkMatching {
 
 			// top-k heap is full & shortest duration >= current threshold
 			// there are two cases now
-			if (topkMatches == null || (topkMatches.size() == k && topkMatches.peek().getDuration() >= minimumCheckedTheta))
+			if (topkMatches == null
+					|| (topkMatches.size() == k && topkMatches.peek().getDuration() >= minimumCheckedTheta))
 				break;
 
 			// get new threshold
@@ -1017,9 +1018,12 @@ public class DurableTopkMatching {
 				labelCandidates.put(label, new HashSet<>(pnode_candidates));
 			}
 
+			boolean found = true;
+
 			for (Iterator<Node> it = pnode_candidates.iterator(); it.hasNext();) {
 
 				n = it.next();
+				found = true;
 
 				lifespan = (BitSet) iQ.clone();
 				lifespan.and(n.getLabel(label));
@@ -1029,9 +1033,13 @@ public class DurableTopkMatching {
 
 					if ((lifespan = n.TiPLaBloomContains(path, lifespan)).isEmpty() || lifespan == null) {
 						it.remove();
+						found = false;
 						break;
 					}
 				}
+
+				if (!found)
+					continue;
 
 				if ((sc = lifespan.cardinality()) < Config.AT_LEAST)
 					it.remove();
