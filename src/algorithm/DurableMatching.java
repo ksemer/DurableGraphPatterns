@@ -147,11 +147,8 @@ public class DurableMatching {
 			}
 
 			// matches found
-			if (topMatches.size() != 0 && maxDuration >= threshold) {
-				if (Config.DEBUG)
-					System.out.println("Matches found: " + topMatches.size());
+			if (topMatches == null || (topMatches.size() != 0 && maxDuration >= threshold))
 				break;
-			}
 
 			// get new threshold
 			if (rankingStrategy == Config.MAXBINARY_RANKING)
@@ -1104,6 +1101,9 @@ public class DurableMatching {
 		w.flush();
 		w.close();
 		topMatches = null;
+		
+		if (Config.DEBUG)
+			System.out.println("Matches found: " + topMatches.size());
 	}
 
 	/**

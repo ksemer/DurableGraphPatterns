@@ -175,7 +175,7 @@ public class DurableTopkMatching {
 
 			// top-k heap is full & shortest duration >= current threshold
 			// there are two cases now
-			if (topkMatches == null || topkMatches.size() == k && topkMatches.peek().getDuration() >= minimumCheckedTheta)
+			if (topkMatches == null || (topkMatches.size() == k && topkMatches.peek().getDuration() >= minimumCheckedTheta))
 				break;
 
 			// get new threshold
