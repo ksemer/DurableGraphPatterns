@@ -1101,9 +1101,6 @@ public class DurableMatching {
 		w.flush();
 		w.close();
 		topMatches = null;
-		
-		if (Config.DEBUG)
-			System.out.println("Matches found: " + topMatches.size());
 	}
 
 	/**

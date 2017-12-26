@@ -244,21 +244,9 @@ public class DurableTopkMatching {
 				if (cand < Config.K) {
 					threshold = ranking.firstKey();
 				}
-			}
 
-			// max & maxbinary ranking
-			if (rankingStrategy != Config.MIN_RANKING) {
 				matchesFound = new HashSet<>();
 				durationMaxRanking = new HashSet<>();
-
-				// if there are not k candidate nodes
-				if (threshold > Config.MAXIMUM_INTERVAL) {
-					threshold = -1;
-
-					// write no matches
-					writeTopMatches();
-					return;
-				}
 
 				// store which threshold has been chosen
 				durationMaxRanking.add(threshold);
@@ -267,6 +255,7 @@ public class DurableTopkMatching {
 				durationMaxRanking.add(iQ.cardinality() + 1);
 
 				minimumCheckedTheta = threshold;
+
 			} else { // min ranking
 				threshold = 2;
 			}
@@ -1031,7 +1020,7 @@ public class DurableTopkMatching {
 				// for all pattern node pn paths
 				for (String path : pg.getTiPLa(pn.getID())) {
 
-					if ((lifespan = n.TiPLaBloomContains(path, lifespan)).isEmpty() || lifespan == null) {
+					if ((lifespan = n.TiPLaBloomContains(path, lifespan)) == null || lifespan.isEmpty()) {
 						it.remove();
 						found = false;
 						break;
