@@ -3,6 +3,8 @@ package graph.version.loader;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
 import graph.version.Graph;
 import graph.version.Node;
@@ -10,11 +12,13 @@ import system.Config;
 import utils.Storage;
 
 /**
- * Loader of YT graph
+ * Loader of Synthetic graph
  * 
  * @author ksemer
  */
-public class LoaderRandom {
+public class LoaderSynthetic {
+
+	private static final int numberOfchanges = 1;
 
 	/**
 	 * Create a labeled version graph in memory from a given DataSet nodeID \t
@@ -29,29 +33,43 @@ public class LoaderRandom {
 		BufferedReader br = new BufferedReader(new FileReader(Config.PATH_DATASET));
 		String line = null;
 		String[] edge;
-		int n1_id, n2_id, time;
+		int n1_id, n2_id;
 		long executionTime = System.currentTimeMillis();
 
 		Graph lvg = new Graph();
 
-		br.readLine();
+		// br.readLine();
 		while ((line = br.readLine()) != null) {
-			edge = line.split("\t");
+
+			line = line.replaceAll("[^\\w\\s]", "");
+			edge = line.split("\\s+");
 			n1_id = Integer.parseInt(edge[0]);
 			n2_id = Integer.parseInt(edge[1]);
 
 			lvg.addNode(n1_id);
 			lvg.addNode(n2_id);
 
-			// edge[2] has the year/time
-			time = Integer.parseInt(edge[2]);
-			lvg.addEdge(n1_id, n2_id, time);
+			for (int i = 2; i < edge.length; i++) {
+				lvg.addEdge(n1_id, n2_id, Integer.parseInt(edge[i]));
 
-			if (!Config.ISDIRECTED)
-				// src -> trg time label
-				lvg.addEdge(n2_id, n1_id, time);
+				if (!Config.ISDIRECTED)
+					lvg.addEdge(n2_id, n1_id, Integer.parseInt(edge[i]));
+			}
 		}
 		br.close();
+
+		// For displaying memory usage
+		if (Config.SHOW_MEMORY) {
+			Runtime runtime = Runtime.getRuntime();
+
+			// Run the garbage collector
+			runtime.gc();
+
+			// Calculate the used memory
+			long memory = runtime.totalMemory() - runtime.freeMemory();
+
+			System.out.println("Used memory with LVG: " + Storage.bytesToMegabytes(memory));
+		}
 
 		// load attributes
 		loadAttributes(lvg);
@@ -81,13 +99,6 @@ public class LoaderRandom {
 		return lvg;
 	}
 
-	/**
-	 * Load nodes attributes
-	 * 
-	 * @param vg
-	 * @param numberOfchanges
-	 * @throws IOException
-	 */
 	private void loadAttributes(Graph lvg) throws IOException {
 		System.out.println("Loading attributes in memory...");
 
@@ -96,6 +107,7 @@ public class LoaderRandom {
 		String[] token, attributes;
 		Node node;
 		int label;
+		Set<Integer> labels = new HashSet<>();
 
 		while ((line = br.readLine()) != null) {
 
@@ -107,10 +119,21 @@ public class LoaderRandom {
 			// get node
 			node = lvg.getNode(Integer.parseInt(token[0]));
 
+			if (node == null)
+				continue;
+
+			int pos = 0;
+
 			for (int t = 0; t < Config.MAXIMUM_INTERVAL; t++) {
-				label = Integer.parseInt(attributes[t]);
+
+				label = Integer.parseInt(attributes[pos]);
+
 				node.updateLabelLifespan(label, t);
 				lvg.udpateTiLa(t, label, node);
+				labels.add(label);
+
+				if ((t + 1) % numberOfchanges == 0 && (pos + 1) != attributes.length)
+					pos++;
 			}
 		}
 		br.close();

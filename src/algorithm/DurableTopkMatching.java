@@ -33,6 +33,7 @@ import system.Config;
  * @author ksemer
  */
 public class DurableTopkMatching {
+
 	// ===============================================================
 
 	// pattern graph
@@ -84,6 +85,9 @@ public class DurableTopkMatching {
 
 	// time limit for algorithm execution
 	private long timeLimit;
+
+	// used in recursive calls to avoid duplicate writes
+	private boolean resultsHaveBeenStored = false;
 
 	// ===============================================================
 
@@ -340,7 +344,10 @@ public class DurableTopkMatching {
 		recursionsPerTheta++;
 
 		if (System.currentTimeMillis() > (timeLimit + Config.TIME_LIMIT * 1000)) {
-			writeTopMatches();
+
+			if (!resultsHaveBeenStored)
+				writeTopMatches();
+
 			throw new Exception("Reach time limit");
 		} else if (depth == pg.size() && c.size() != 0) {
 			computeMatchTime(c);
@@ -1101,6 +1108,7 @@ public class DurableTopkMatching {
 
 			w.write("No matches");
 			w.close();
+			resultsHaveBeenStored = true;
 			return;
 		}
 
@@ -1210,15 +1218,7 @@ public class DurableTopkMatching {
 		w.write(result);
 		w.close();
 		topkMatches = null;
-	}
-
-	/**
-	 * Return query execution time
-	 * 
-	 * @return
-	 */
-	public long getTotalTime() {
-		return totalTime;
+		resultsHaveBeenStored = true;
 	}
 
 	/**

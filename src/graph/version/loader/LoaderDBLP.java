@@ -66,6 +66,19 @@ public class LoaderDBLP {
 				lvg.addEdge(n2_id, n1_id, time);
 		}
 		br.close();
+		
+		// For displaying memory usage
+		if (Config.SHOW_MEMORY) {
+			Runtime runtime = Runtime.getRuntime();
+
+			// Run the garbage collector
+			runtime.gc();
+
+			// Calculate the used memory
+			long memory = runtime.totalMemory() - runtime.freeMemory();
+
+			System.out.println("Used memory with LVG: " + Storage.bytesToMegabytes(memory));
+		}
 
 		// load attributes
 		loadAttributes(lvg);

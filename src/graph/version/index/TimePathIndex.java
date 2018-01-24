@@ -134,7 +134,7 @@ public class TimePathIndex implements Serializable {
 			}
 
 			// if the path ends before maxDepth
-			if (!addNew && (info.depth + 1) < Config.TIPLA_MAX_DEPTH)
+			if (!addNew && (info.depth + 1) <= Config.TIPLA_MAX_DEPTH)
 				storePath(info);
 		}
 	}

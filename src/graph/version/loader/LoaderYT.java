@@ -61,6 +61,19 @@ public class LoaderYT {
 			}
 		}
 		br.close();
+		
+		// For displaying memory usage
+		if (Config.SHOW_MEMORY) {
+			Runtime runtime = Runtime.getRuntime();
+
+			// Run the garbage collector
+			runtime.gc();
+
+			// Calculate the used memory
+			long memory = runtime.totalMemory() - runtime.freeMemory();
+
+			System.out.println("Used memory with LVG: " + Storage.bytesToMegabytes(memory));
+		}
 
 		// load attributes
 		loadAttributes(lvg);
@@ -128,9 +141,8 @@ public class LoaderYT {
 				lvg.udpateTiLa(t, label, node);
 				labels.add(label);
 
-				if ((t + 1) % numberOfchanges == 0)
-					if (pos + 1 != attributes.length)
-						pos++;
+				if ((t + 1) % numberOfchanges == 0 && (pos + 1) != attributes.length)
+					pos++;
 			}
 		}
 		br.close();

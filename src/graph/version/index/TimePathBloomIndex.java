@@ -41,7 +41,7 @@ public class TimePathBloomIndex {
 		System.out.println("TiPLaBloom Index is running");
 		long time = System.currentTimeMillis();
 
-		ExecutorService executor = Executors.newFixedThreadPool(Config.THREADS);
+		ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
 		for (Node n : g.getNodes())
 			executor.submit(setCallablePath(n));
@@ -140,7 +140,7 @@ public class TimePathBloomIndex {
 			}
 
 			// if the path ends before maxDepth
-			if (!addNew && (info.depth + 1) < Config.TIPLA_MAX_DEPTH)
+			if (!addNew && (info.depth + 1) <= Config.TIPLA_MAX_DEPTH)
 				storePath(info);
 		}
 	}

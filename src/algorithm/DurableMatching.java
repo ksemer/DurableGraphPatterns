@@ -76,6 +76,11 @@ public class DurableMatching {
 	// time limit for algorithm execution
 	private long timeLimit;
 
+	// used in recursive calls to avoid duplicate writes
+	private boolean resultsHaveBeenStored = false;
+
+	private int maxTmpMatchDur = -1;
+
 	// ===============================================================
 
 	/**
@@ -247,12 +252,20 @@ public class DurableMatching {
 
 			sc = ranking.floorKey(threshold);
 
+			// ignore
+			if (sc == 1)
+				continue;
+
 			if (threshold > sc)
 				threshold = sc;
 		}
 
-		if (threshold == minimumCheckedTheta)
-			threshold--;
+		if (threshold == minimumCheckedTheta) {
+			if (maxTmpMatchDur > threshold)
+				threshold = maxTmpMatchDur;
+			else
+				threshold--;
+		}
 
 		// store the minimum checked threshold
 		if (!topMatches.isEmpty() && maxDuration > threshold) {
@@ -277,7 +290,10 @@ public class DurableMatching {
 		recursionsPerTheta++;
 
 		if (System.currentTimeMillis() > (timeLimit + Config.TIME_LIMIT * 1000)) {
-			writeTopMatches();
+
+			if (!resultsHaveBeenStored)
+				writeTopMatches();
+
 			throw new Exception("Reach time limit");
 		} else if (topMatches.size() == Config.MAX_MATCHES && maxDuration >= threshold
 				&& rankingStrategy != Config.MIN_RANKING) {
@@ -358,6 +374,9 @@ public class DurableMatching {
 
 		if (!continuously)
 			duration = inter.cardinality();
+
+		if (rankingStrategy == Config.MAX_RANKING && maxTmpMatchDur < duration)
+			maxTmpMatchDur = duration;
 
 		// if match has already been found or duration is min
 		if (duration == 0 || (rankingStrategy != Config.MIN_RANKING
@@ -998,6 +1017,7 @@ public class DurableMatching {
 
 			w.write("No matches");
 			w.close();
+			resultsHaveBeenStored = true;
 			return;
 		}
 
@@ -1101,15 +1121,7 @@ public class DurableMatching {
 		w.flush();
 		w.close();
 		topMatches = null;
-	}
-
-	/**
-	 * Return query execution time
-	 * 
-	 * @return
-	 */
-	public long getTotalTime() {
-		return totalTime;
+		resultsHaveBeenStored = true;
 	}
 
 	/**
