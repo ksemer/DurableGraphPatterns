@@ -54,8 +54,8 @@ public class Node implements Serializable {
 	// bloom -> t p
 	private BloomFilter<String> TiPLaBloom;
 
-	// auxiliary structure for TiPLaBloom
-	private Map<Integer, Set<String>> TiPLaBloomAux;
+	// auxiliary structure for TiPLa
+	private Map<Integer, Set<String>> TiPLaAux;
 
 	// =================================================================
 
@@ -390,19 +390,19 @@ public class Node implements Serializable {
 		int totalEntries = 0;
 
 		// no paths exists, thus do not initialize a bloom
-		if (TiPLaBloomAux.isEmpty()) {
-			TiPLaBloomAux = null;
+		if (TiPLaAux.isEmpty()) {
+			TiPLaAux = null;
 			return;
 		}
 
-		for (Entry<Integer, Set<String>> entry : TiPLaBloomAux.entrySet())
+		for (Entry<Integer, Set<String>> entry : TiPLaAux.entrySet())
 			totalEntries += entry.getValue().size();
 
 		TiPLaBloom = BloomFilter.create(Funnels.stringFunnel(Charsets.UTF_8), totalEntries, 0.01);
 
 		int t;
 
-		for (Entry<Integer, Set<String>> entry : TiPLaBloomAux.entrySet()) {
+		for (Entry<Integer, Set<String>> entry : TiPLaAux.entrySet()) {
 
 			t = entry.getKey();
 
@@ -410,7 +410,7 @@ public class Node implements Serializable {
 				TiPLaBloom.put(t + " " + p);
 		}
 
-		TiPLaBloomAux = null;
+		TiPLaAux = null;
 	}
 
 	/**
@@ -581,7 +581,7 @@ public class Node implements Serializable {
 	 * @return
 	 */
 	public Map<Integer, Set<String>> getTiPLaAux() {
-		return TiPLaBloomAux;
+		return TiPLaAux;
 	}
 
 	/**
@@ -617,10 +617,10 @@ public class Node implements Serializable {
 	}
 
 	/**
-	 * Initialize auxiliary TiPLa bloom structure
+	 * Initialize auxiliary TiPLa structure
 	 */
-	public void initiliazeTiPLaBloom() {
-		TiPLaBloomAux = new HashMap<>();
+	public void initiliazeTiPLaAux() {
+		TiPLaAux = new HashMap<>();
 	}
 
 	/**

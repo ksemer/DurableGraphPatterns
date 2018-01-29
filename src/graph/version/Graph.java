@@ -10,7 +10,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import graph.version.index.TimePathBloomIndex;
 import graph.version.index.TimePathIndex;
 
 import java.util.Set;
@@ -32,8 +31,7 @@ public class Graph implements Serializable {
 	private Map<Integer, Node> nodes;
 	private List<Map<Integer, Set<Node>>> TiLa;
 	private Map<Integer, Map<String, Set<Node>>> TiPLa;
-	private TimePathBloomIndex TiPLaBloom;
-
+	
 	// =================================================================
 
 	/**
@@ -155,8 +153,7 @@ public class Graph implements Serializable {
 	public void createTiPLa() throws IOException, InterruptedException {
 
 		if (Config.BLOOM_ENABLED) {
-			TiPLaBloom = new TimePathBloomIndex();
-			TiPLaBloom.createIndex(this);
+			new TimePathIndex().createPathIndex(this);
 		} else {
 			TiPLa = new TimePathIndex().createPathIndex(this);
 
