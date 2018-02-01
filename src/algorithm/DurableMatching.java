@@ -544,21 +544,6 @@ public class DurableMatching {
 
 		labelLife.and(n.getLabel(p.getLabel()));
 
-		if (continuously) {
-			BitSet shifted = (BitSet) labelLife.clone();
-			int count = 0;
-
-			while (!shifted.isEmpty()) {
-				shifted.and(shifted.get(1, shifted.length()));
-				count++;
-			}
-
-			if (count < threshold)
-				return intersection;
-
-		} else if (labelLife.cardinality() < threshold)
-			return intersection;
-
 		if (n.getAdjacency().size() < phi.get(chil.getID()).size()) {
 			for (Edge e : n.getAdjacency()) {
 				if (phi.get(chil.getID()).contains(e.getTarget())) {
