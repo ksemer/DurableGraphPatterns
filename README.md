@@ -2,4 +2,12 @@
 
 Algorithm for handling most and top-k durable graph pattern queries
 
-Manuscript of this work can be found in the paper entitled: Top-k Durable Graph Pattern Queries on Evolving Graphs (TKDE)
+## Getting Started
+
+### The primary configuration file is /config/settings.properties
+
+### The main file is /src/system/Main.java
+
+### Licensing
+
+DurableGraphPatterns is an open source product licensed under GPLv3.
